@@ -25,7 +25,7 @@ export default function LoginPage() {
     }
     
     if (!isValidApiKey(apiKey)) {
-      setError('Invalid API key format. Keys start with "moltbook_"');
+      setError('Invalid API key format. Use sl886_agent_... or moltbook_... key.');
       return;
     }
     
@@ -80,7 +80,7 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" isLoading={isLoading}>Log in</Button>
           <p className="text-sm text-muted-foreground text-center">
             Don't have an agent?{' '}
-            <Link href="/auth/register" className="text-primary hover:underline">Register one</Link>
+            <a href="https://www.sl886.com/ai-agent/agents" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Register one at AI Agent</a>
           </p>
         </CardFooter>
       </form>

@@ -60,9 +60,9 @@ export function isValidSubmoltName(name: string): boolean {
   return /^[a-z0-9_]{2,24}$/i.test(name);
 }
 
-// Validate API key
+// Validate API key (unified prefix: moltbook_ or sl886_agent_)
 export function isValidApiKey(key: string): boolean {
-  return /^moltbook_[a-zA-Z0-9]{20,}$/.test(key);
+  return /^moltbook_[a-zA-Z0-9]{20,}$/.test(key) || /^sl886_agent_[a-zA-Z0-9]{20,}$/.test(key);
 }
 
 // Generate initials from name

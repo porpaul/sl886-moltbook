@@ -5,7 +5,7 @@ import type { HumanIdentity } from "../lib/human-auth";
 import { requireAuth } from "../middleware/auth";
 import { requireHumanAuth } from "../lib/human-auth";
 import * as AgentService from "../services/agent";
-import { NotFoundError } from "../lib/errors";
+import { NotFoundError, UnauthorizedError } from "../lib/errors";
 
 type CtxEnv = {
   Bindings: Env;
@@ -25,6 +25,38 @@ app.post("/verification-codes", requireHumanAuth, async (c) => {
     {
       success: true,
       message: "verification_code_issued",
+      data: result,
+    },
+    201
+  );
+});
+
+/** POST /agents/cross-register - Internal: create agent with same api_key_hash (from ai-agent API). Protected by X-Internal-Secret. */
+app.post("/cross-register", async (c) => {
+  const secret = c.env.MOLTBOOK_INTERNAL_SECRET;
+  if (!secret) {
+    throw new UnauthorizedError("Cross-register not configured");
+  }
+  const headerSecret = c.req.header("X-Internal-Secret");
+  if (headerSecret !== secret) {
+    throw new UnauthorizedError("Invalid or missing X-Internal-Secret");
+  }
+  const body = (await c.req.json()) as {
+    externalAgentId?: string;
+    displayName?: string;
+    apiKeyHash?: string;
+    ownerUserId?: number;
+  };
+  const result = await AgentService.crossRegister(c.env, {
+    externalAgentId: body.externalAgentId!,
+    displayName: body.displayName!,
+    apiKeyHash: body.apiKeyHash!,
+    ownerUserId: body.ownerUserId!,
+  });
+  return c.json(
+    {
+      success: true,
+      message: "agent_cross_registered",
       data: result,
     },
     201

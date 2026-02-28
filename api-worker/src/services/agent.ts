@@ -50,7 +50,7 @@ export async function issueVerificationCode(
   const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS).toISOString();
   const id = crypto.randomUUID();
 
-  const prefix = env.MOLTBOOK_TOKEN_PREFIX ?? "moltbook_";
+  const prefix = env.MOLTBOOK_TOKEN_PREFIX ?? "sl886_agent_";
   await queryOne(
     env,
     `INSERT INTO agent_verification_codes (id, user_id, user_email, code_hash, expires_at)
@@ -65,6 +65,71 @@ export async function issueVerificationCode(
   return { code, expiresAt };
 }
 
+/** Internal cross-register: create agent in Moltbook with same api_key_hash (no OTP). Used by ai-agent API after local registration. */
+export async function crossRegister(
+  env: Env,
+  data: {
+    externalAgentId: string;
+    displayName: string;
+    apiKeyHash: string;
+    ownerUserId: number;
+  }
+): Promise<{ agentId: string; name: string }> {
+  if (!data.externalAgentId || typeof data.externalAgentId !== "string") {
+    throw new BadRequestError("externalAgentId is required");
+  }
+  if (!data.displayName || typeof data.displayName !== "string") {
+    throw new BadRequestError("displayName is required");
+  }
+  if (!data.apiKeyHash || typeof data.apiKeyHash !== "string") {
+    throw new BadRequestError("apiKeyHash is required");
+  }
+  const ownerUserId = Number(data.ownerUserId);
+  if (!Number.isInteger(ownerUserId) || ownerUserId <= 0) {
+    throw new BadRequestError("ownerUserId must be a positive integer");
+  }
+
+  const normalizedExternalId = data.externalAgentId.trim();
+  const displayNameTrim = data.displayName.trim();
+
+  const existing = await queryOne(
+    env,
+    "SELECT id, name FROM agents WHERE external_agent_id = ?",
+    normalizedExternalId
+  );
+
+  if (existing) {
+    const agentId = String((existing as { id: string }).id);
+    await queryOne(
+      env,
+      `UPDATE agents SET api_key_hash = ?, display_name = ?, owner_user_id = ?, status = 'active', is_claimed = 1, updated_at = datetime('now') WHERE id = ?`,
+      data.apiKeyHash,
+      displayNameTrim,
+      ownerUserId,
+      agentId
+    );
+    return {
+      agentId,
+      name: String((existing as { name: string }).name),
+    };
+  }
+
+  const uniqueName = await generateUniqueAgentName(env, normalizedExternalId);
+  const agentId = crypto.randomUUID();
+  await queryOne(
+    env,
+    `INSERT INTO agents (id, name, external_agent_id, display_name, api_key_hash, status, is_claimed, owner_user_id)
+     VALUES (?, ?, ?, ?, ?, 'active', 1, ?)`,
+    agentId,
+    uniqueName,
+    normalizedExternalId,
+    displayNameTrim,
+    data.apiKeyHash,
+    ownerUserId
+  );
+  return { agentId, name: uniqueName };
+}
+
 export async function register(
   env: Env,
   data: {
@@ -75,7 +140,7 @@ export async function register(
   }
 ): Promise<{ apiKey: string; claimUrl: string }> {
   const baseUrl = env.BASE_URL ?? "https://www.moltbook.com";
-  const tokenPrefix = env.MOLTBOOK_TOKEN_PREFIX ?? "moltbook_";
+  const tokenPrefix = env.MOLTBOOK_TOKEN_PREFIX ?? "sl886_agent_";
   const claimPrefix = env.MOLTBOOK_CLAIM_PREFIX ?? "moltbook_claim_";
 
   if (!data.externalAgentId || typeof data.externalAgentId !== "string") {

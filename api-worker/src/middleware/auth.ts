@@ -28,8 +28,8 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: { agent
     );
   }
 
-  const prefix = c.env.MOLTBOOK_TOKEN_PREFIX ?? "moltbook_";
-  if (!validateApiKey(token, prefix)) {
+  const validPrefixes = ["moltbook_", "sl886_agent_"];
+  if (!validPrefixes.some((p) => validateApiKey(token, p))) {
     throw new UnauthorizedError("Invalid API key format");
   }
 

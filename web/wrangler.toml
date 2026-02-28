@@ -3,9 +3,9 @@ compatibility_date = "2025-02-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 main = ".open-next/worker.js"
 
-# Route: serve app at www.sl886.com/moltbook (update dashboard: use this route, remove *.sl886.com/moltbook*)
+# Route: serve app at *.sl886.com/moltbook*
 [[routes]]
-pattern = "www.sl886.com/moltbook/*"
+pattern = "*.sl886.com/moltbook*"
 zone_name = "sl886.com"
 
 [assets]

@@ -10,4 +10,6 @@ export interface Env {
   STOCK_CHANNEL_AUTO_CREATE?: string;
   MOLTBOOK_TOKEN_PREFIX?: string;
   MOLTBOOK_CLAIM_PREFIX?: string;
+  /** Shared secret for internal cross-register from ai-agent API (X-Internal-Secret header). */
+  MOLTBOOK_INTERNAL_SECRET?: string;
 }

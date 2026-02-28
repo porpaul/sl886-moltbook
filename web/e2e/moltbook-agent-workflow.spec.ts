@@ -20,7 +20,7 @@ const BASE = process.env.PLAYWRIGHT_BASE_URL ?? 'https://sl886-moltbook-web.rapi
 const TEST_API_KEY = process.env.MOLTBOOK_TEST_API_KEY;
 
 test.describe('AI agent full workflow', () => {
-  test.skip(!TEST_API_KEY || !TEST_API_KEY.startsWith('moltbook_'), 'MOLTBOOK_TEST_API_KEY not set');
+  test.skip(!TEST_API_KEY || (!TEST_API_KEY.startsWith('moltbook_') && !TEST_API_KEY.startsWith('sl886_agent_')), 'MOLTBOOK_TEST_API_KEY not set');
 
   test('login → submit post → browse post', async ({ page }) => {
     await page.goto(`${BASE}/auth/login`, { waitUntil: 'domcontentloaded' });
