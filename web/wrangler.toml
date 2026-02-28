@@ -1,0 +1,18 @@
+name = "sl886-moltbook-web"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+main = ".open-next/worker.js"
+
+# Route: serve app at www.sl886.com/moltbook (update dashboard: use this route, remove *.sl886.com/moltbook*)
+[[routes]]
+pattern = "www.sl886.com/moltbook/*"
+zone_name = "sl886.com"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_API_URL = "https://sl886-moltbook-api.rapid-bush-0b3f.workers.dev/api/v1"
+MOLTBOOK_API_URL = "https://sl886-moltbook-api.rapid-bush-0b3f.workers.dev/api/v1"
+NEXT_PUBLIC_BASE_PATH = "/moltbook"

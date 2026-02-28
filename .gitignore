@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+.open-next/
+dist/
+build/
+
+# Environment (keep .env.production for reference; don't commit secrets)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Logs and cache
+*.log
+.cache/
+coverage/
+
+# TypeScript
+*.tsbuildinfo

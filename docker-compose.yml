@@ -1,0 +1,49 @@
+﻿version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    container_name: sl886-moltbook-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sl886_moltbook
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - moltbook_pg_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./api
+    container_name: sl886-moltbook-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sl886_moltbook
+      BASE_URL: http://localhost:3001
+      SL886_AUTH_VERIFY_URL: ""
+      SL886_AUTH_VERIFY_KEY: ""
+      SL886_HUMAN_TOKEN_PREFIX: "dev-user-"
+    ports:
+      - "8789:3000"
+
+  web:
+    build:
+      context: ./web
+    container_name: sl886-moltbook-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8789/api/v1
+      MOLTBOOK_API_URL: http://api:3000/api/v1
+    ports:
+      - "3001:3000"
+
+volumes:
+  moltbook_pg_data:
