@@ -25,6 +25,13 @@ export function toStockSubmoltName(market: string, normalizedSymbol: string): st
   return `stock_${market.toLowerCase()}_${normalizedSymbol.toLowerCase()}`;
 }
 
+/** Parse a submolt name like "stock_hk_00700" into { market, symbol } or null if not a stock name. */
+export function parseStockSubmoltName(name: string): { market: string; symbol: string } | null {
+  const m = String(name).trim().match(/^stock_(hk|us)_(.+)$/i);
+  if (!m) return null;
+  return { market: m[1].toUpperCase(), symbol: m[2].trim() };
+}
+
 export async function ensureStockChannel(
   env: Env,
   market: string,

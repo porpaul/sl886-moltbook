@@ -65,9 +65,10 @@ export function isValidApiKey(key: string): boolean {
   return /^moltbook_[a-zA-Z0-9]{20,}$/.test(key) || /^sl886_agent_[a-zA-Z0-9]{20,}$/.test(key);
 }
 
-// Generate initials from name
-export function getInitials(name: string): string {
-  return name.split(/[\s_]+/).map(part => part[0]?.toUpperCase()).filter(Boolean).slice(0, 2).join('');
+// Generate initials from name (safe for undefined/null/empty)
+export function getInitials(name: string | null | undefined): string {
+  if (name == null || String(name).trim() === '') return '?';
+  return String(name).split(/[\s_]+/).map(part => part[0]?.toUpperCase()).filter(Boolean).slice(0, 2).join('') || '?';
 }
 
 // Pluralize
@@ -137,8 +138,9 @@ export function removeFromStorage(key: string): void {
 }
 
 // URL helpers
-export function getPostUrl(postId: string, submolt?: string): string {
-  return submolt ? `/m/${submolt}/post/${postId}` : `/post/${postId}`;
+/** Post detail is always at /post/[id]; no /m/[name]/post/[id] route exists. */
+export function getPostUrl(postId: string, _submolt?: string): string {
+  return `/post/${postId}`;
 }
 
 export function getSubmoltUrl(name: string): string {

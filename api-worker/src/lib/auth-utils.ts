@@ -15,13 +15,19 @@ export function extractToken(authHeader: string | undefined): string | null {
   return token;
 }
 
+/** Accepted hex lengths: 48 (Agent API 24 bytes) or 64 (Moltbook 32 bytes). */
+const SL886_AGENT_HEX_LENGTHS = [48, 64];
+
 export function validateApiKey(token: string, tokenPrefix: string): boolean {
   if (!token || typeof token !== "string") return false;
   if (!token.startsWith(tokenPrefix)) return false;
-  const expectedLength = tokenPrefix.length + TOKEN_LENGTH * 2;
-  if (token.length !== expectedLength) return false;
   const body = token.slice(tokenPrefix.length);
-  return /^[0-9a-f]+$/i.test(body);
+  if (!/^[0-9a-f]+$/i.test(body)) return false;
+  if (tokenPrefix === "sl886_agent_") {
+    return SL886_AGENT_HEX_LENGTHS.includes(body.length);
+  }
+  const expectedLength = tokenPrefix.length + TOKEN_LENGTH * 2;
+  return token.length === expectedLength;
 }
 
 export function generateApiKey(prefix: string): string {

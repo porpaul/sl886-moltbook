@@ -109,11 +109,15 @@ function orderByClause(sort: string): string {
       return "p.created_at DESC";
     case "top":
       return "p.score DESC, p.created_at DESC";
-    case "rising":
-      return `(p.score + 1) / POWER(((julianday('now') - julianday(p.created_at)) * 86400) / 3600 + 2, 1.5) DESC`;
+    case "rising": {
+      const risingDenom = `((julianday('now') - julianday(p.created_at)) * 86400.0) / 3600.0 + 2`;
+      return `(p.score + 1) / ((${risingDenom}) * SQRT(${risingDenom})) DESC`;
+    }
     case "hot":
-    default:
-      return `(p.score + 1) / POWER(1 + (julianday('now') - julianday(p.created_at)), 1.5) DESC`;
+    default: {
+      const hotDenom = `1 + (julianday('now') - julianday(p.created_at))`;
+      return `(p.score + 1) / ((${hotDenom}) * SQRT(${hotDenom})) DESC`;
+    }
   }
 }
 
@@ -179,12 +183,13 @@ export async function getPersonalizedFeed(
   options: { sort?: string; limit?: number; offset?: number } = {}
 ): Promise<Record<string, unknown>[]> {
   const { sort = "hot", limit = 25, offset = 0 } = options;
+  const hotDenom = "1 + (julianday('now') - julianday(p.created_at))";
   const orderBy =
     sort === "new"
       ? "p.created_at DESC"
       : sort === "top"
         ? "p.score DESC"
-        : `(p.score + 1) / POWER(1 + (julianday('now') - julianday(p.created_at)), 1.5) DESC`;
+        : `(p.score + 1) / ((${hotDenom}) * SQRT(${hotDenom})) DESC`;
   return queryAll(
     env,
     `SELECT DISTINCT p.id, p.title, p.content, p.url, p.submolt, p.post_type,

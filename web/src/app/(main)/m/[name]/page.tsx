@@ -50,8 +50,8 @@ export default function SubmoltPage() {
     }
   };
   
-  if (error) return notFound();
-  
+  if (error || (!submoltLoading && !submolt)) return notFound();
+
   return (
     <PageContainer>
       <div className="max-w-5xl mx-auto">

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 import { requirePostingEligibility, checkSafeContent } from "../middleware/posting-policy";
 import * as PostService from "../services/post";
 import * as CommentService from "../services/comment";
@@ -11,13 +11,13 @@ const PAGINATION_MAX = 100;
 
 type CtxEnv = {
   Bindings: Env;
-  Variables: { agent: AgentInfo };
+  Variables: { agent?: AgentInfo };
 };
 
 const app = new Hono<CtxEnv>();
 
-/** GET /posts - Feed */
-app.get("/", requireAuth, async (c) => {
+/** GET /posts - Feed (public when no auth) */
+app.get("/", optionalAuth, async (c) => {
   const sort = c.req.query("sort") ?? "hot";
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "25", 10) || 25,
@@ -66,15 +66,13 @@ app.post(
   }
 );
 
-/** GET /posts/:id - Single post */
-app.get("/:id", requireAuth, async (c) => {
+/** GET /posts/:id - Single post (public; userVote set when auth) */
+app.get("/:id", optionalAuth, async (c) => {
   const post = await PostService.findById(c.env, c.req.param("id"));
-  const userVote = await VoteService.getVote(
-    c.env,
-    c.get("agent").id,
-    c.req.param("id"),
-    "post"
-  );
+  const agent = c.get("agent");
+  const userVote = agent
+    ? await VoteService.getVote(c.env, agent.id, c.req.param("id"), "post")
+    : null;
   return c.json({
     success: true,
     post: { ...post, userVote },
@@ -107,8 +105,8 @@ app.post("/:id/downvote", requireAuth, async (c) => {
   return c.json(result);
 });
 
-/** GET /posts/:id/comments */
-app.get("/:id/comments", requireAuth, async (c) => {
+/** GET /posts/:id/comments (public) */
+app.get("/:id/comments", optionalAuth, async (c) => {
   const sort = c.req.query("sort") ?? "top";
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "100", 10) || 100,

@@ -3,6 +3,19 @@ import { persist } from 'zustand/middleware';
 import type { Agent, Post, PostSort, TimeRange, Notification } from '@/types';
 import { api } from '@/lib/api';
 
+/** Normalize post from API (snake_case) to frontend Post shape (camelCase) so components do not throw. */
+export function normalizePost(p: Record<string, unknown>): Post {
+  return {
+    ...p,
+    authorName: (p.author_name as string) ?? (p.authorName as string) ?? '',
+    authorDisplayName: (p.author_display_name as string) ?? (p.authorDisplayName as string),
+    postType: ((p.post_type as string) ?? (p.postType as string) ?? 'text') as Post['postType'],
+    commentCount: Number(p.comment_count ?? p.commentCount ?? 0),
+    authorId: (p.author_id as string) ?? (p.authorId as string) ?? '',
+    createdAt: (p.created_at as string) ?? (p.createdAt as string) ?? '',
+  } as Post;
+}
+
 // Auth Store
 interface AuthStore {
   agent: Agent | null;
@@ -112,14 +125,19 @@ export const useFeedStore = create<FeedStore>((set, get) => ({
     set({ isLoading: true });
     try {
       const offset = reset ? 0 : get().offset;
+      const limit = 25;
       const response = submolt 
-        ? await api.getSubmoltFeed(submolt, { sort, limit: 25, offset })
-        : await api.getPosts({ sort, timeRange, limit: 25, offset });
-      
+        ? await api.getSubmoltFeed(submolt, { sort, limit, offset })
+        : await api.getPosts({ sort, timeRange, limit, offset });
+      const rawData = (Array.isArray(response.data) ? response.data : []) as unknown as Record<string, unknown>[];
+      const posts = rawData.map((p) => normalizePost(p));
+      const pagination = response.pagination ?? { limit, offset: 0 };
+      const hasMore = Boolean(pagination.hasMore ?? (rawData.length >= limit));
+
       set({
-        posts: reset ? response.data : [...get().posts, ...response.data],
-        hasMore: response.pagination.hasMore,
-        offset: offset + response.data.length,
+        posts: reset ? posts : [...get().posts, ...posts],
+        hasMore,
+        offset: offset + posts.length,
         isLoading: false,
       });
     } catch (err) {
@@ -191,7 +209,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   
   loadNotifications: async () => {
     set({ isLoading: true });
-    // TODO: Implement API call
+    // Notifications API not yet in Moltbook backend; leave empty for now.
     set({ isLoading: false });
   },
   

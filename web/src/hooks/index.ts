@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import useSWR, { SWRConfiguration } from 'swr';
 import { useInView } from 'react-intersection-observer';
 import { api, ApiError } from '@/lib/api';
-import { useAuthStore, useFeedStore, useUIStore, useSubscriptionStore } from '@/store';
+import { useAuthStore, useFeedStore, useUIStore, useSubscriptionStore, normalizePost } from '@/store';
 
 export { useSubscriptionStore };
 import type { Post, Comment, Agent, Submolt, PostSort, CommentSort } from '@/types';
@@ -24,7 +24,11 @@ export function useAuth() {
 
 // Post hooks
 export function usePost(postId: string, config?: SWRConfiguration) {
-  return useSWR<Post>(postId ? ['post', postId] : null, () => api.getPost(postId), config);
+  return useSWR<Post>(
+    postId ? ['post', postId] : null,
+    () => api.getPost(postId).then((p) => normalizePost((p ?? {}) as unknown as Record<string, unknown>)),
+    config
+  );
 }
 
 export function usePosts(options: { sort?: PostSort; submolt?: string } = {}, config?: SWRConfiguration) {

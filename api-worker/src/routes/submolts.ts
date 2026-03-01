@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 import * as SubmoltService from "../services/submolt";
 import * as PostService from "../services/post";
 
@@ -9,13 +9,13 @@ const PAGINATION_MAX = 100;
 
 type CtxEnv = {
   Bindings: Env;
-  Variables: { agent: AgentInfo };
+  Variables: { agent?: AgentInfo };
 };
 
 const app = new Hono<CtxEnv>();
 
-/** GET /submolts - List submolts */
-app.get("/", requireAuth, async (c) => {
+/** GET /submolts - List submolts (public) */
+app.get("/", optionalAuth, async (c) => {
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "50", 10) || 50,
     100
@@ -46,32 +46,32 @@ app.post("/", requireAuth, async (c) => {
   return c.json({ success: true, submolt }, 201);
 });
 
-/** GET /submolts/stock/:market/:symbol */
-app.get("/stock/:market/:symbol", requireAuth, async (c) => {
+/** GET /submolts/stock/:market/:symbol (public) */
+app.get("/stock/:market/:symbol", optionalAuth, async (c) => {
+  const agent = c.get("agent");
   const submolt = await SubmoltService.ensureStockChannel(
     c.env,
     c.req.param("market"),
     c.req.param("symbol"),
-    c.get("agent").id
+    agent?.id ?? null
   );
-  const isSubscribed = await SubmoltService.isSubscribed(
-    c.env,
-    String(submolt.id),
-    c.get("agent").id
-  );
+  const isSubscribed = agent
+    ? await SubmoltService.isSubscribed(c.env, String(submolt.id), agent.id)
+    : false;
   return c.json({
     success: true,
     submolt: { ...submolt, isSubscribed },
   });
 });
 
-/** GET /submolts/stock/:market/:symbol/feed */
-app.get("/stock/:market/:symbol/feed", requireAuth, async (c) => {
+/** GET /submolts/stock/:market/:symbol/feed (public) */
+app.get("/stock/:market/:symbol/feed", optionalAuth, async (c) => {
+  const agent = c.get("agent");
   const submolt = await SubmoltService.ensureStockChannel(
     c.env,
     c.req.param("market"),
     c.req.param("symbol"),
-    c.get("agent").id
+    agent?.id ?? null
   );
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "25", 10) || 25,
@@ -91,18 +91,22 @@ app.get("/stock/:market/:symbol/feed", requireAuth, async (c) => {
   });
 });
 
-/** GET /submolts/:name */
-app.get("/:name", requireAuth, async (c) => {
-  const submolt = await SubmoltService.findByName(
-    c.env,
-    c.req.param("name"),
-    c.get("agent").id
-  );
-  const isSubscribed = await SubmoltService.isSubscribed(
-    c.env,
-    String(submolt.id),
-    c.get("agent").id
-  );
+/** GET /submolts/:name (public). For stock names (e.g. stock_hk_00700), ensure channel exists. */
+app.get("/:name", optionalAuth, async (c) => {
+  const agent = c.get("agent");
+  const name = c.req.param("name");
+  const stockParsed = SubmoltService.parseStockSubmoltName(name);
+  const submolt = stockParsed
+    ? await SubmoltService.ensureStockChannel(
+        c.env,
+        stockParsed.market,
+        stockParsed.symbol,
+        agent?.id ?? null
+      )
+    : await SubmoltService.findByName(c.env, name, agent?.id ?? null);
+  const isSubscribed = agent
+    ? await SubmoltService.isSubscribed(c.env, String(submolt.id), agent.id)
+    : false;
   return c.json({
     success: true,
     submolt: { ...submolt, isSubscribed },
@@ -127,8 +131,8 @@ app.patch("/:name/settings", requireAuth, async (c) => {
   return c.json({ success: true, submolt: updated });
 });
 
-/** GET /submolts/:name/feed */
-app.get("/:name/feed", requireAuth, async (c) => {
+/** GET /submolts/:name/feed (public) */
+app.get("/:name/feed", optionalAuth, async (c) => {
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "25", 10) || 25,
     PAGINATION_MAX

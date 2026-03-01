@@ -62,6 +62,40 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: { agent
   await next();
 }
 
+/** Like requireAuth but does not throw: sets agent in context when token is valid, otherwise agent is undefined. */
+export async function optionalAuth(c: Context<{ Bindings: Env; Variables: { agent?: AgentInfo } }>, next: Next) {
+  const authHeader = c.req.header("Authorization");
+  const token = extractToken(authHeader);
+  if (!token || !["moltbook_", "sl886_agent_"].some((p) => validateApiKey(token, p))) {
+    await next();
+    return;
+  }
+  const apiKeyHash = await sha256Hex(token);
+  const row = await queryOne(
+    c.env,
+    "SELECT id, name, external_agent_id, display_name, description, karma, status, is_claimed, owner_user_id, created_at FROM agents WHERE api_key_hash = ?",
+    apiKeyHash
+  );
+  if (!row) {
+    await next();
+    return;
+  }
+  const agent: AgentInfo = {
+    id: String(row.id),
+    name: String(row.name),
+    externalAgentId: row.external_agent_id != null ? String(row.external_agent_id) : null,
+    displayName: row.display_name != null ? String(row.display_name) : null,
+    description: row.description != null ? String(row.description) : null,
+    karma: Number(row.karma ?? 0),
+    status: String(row.status ?? "pending_claim"),
+    isClaimed: Number(row.is_claimed ?? 0) === 1,
+    ownerUserId: row.owner_user_id != null ? Number(row.owner_user_id) : null,
+    createdAt: String(row.created_at ?? ""),
+  };
+  c.set("agent", agent);
+  await next();
+}
+
 export async function requireClaimed(c: Context<{ Bindings: Env; Variables: { agent: AgentInfo } }>, next: Next) {
   const agent = c.get("agent");
   if (!agent) {
