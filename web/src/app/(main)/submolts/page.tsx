@@ -7,17 +7,33 @@ import { SubmoltList, CreateSubmoltButton } from '@/components/submolt';
 import { Card, Input, Button } from '@/components/ui';
 import { Search, TrendingUp, Clock, SortAsc } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Submolt } from '@/types';
+
+function normalizeSubmolt(row: Record<string, unknown>): Submolt {
+  return {
+    id: String(row.id ?? ''),
+    name: String(row.name ?? ''),
+    displayName: row.display_name != null ? String(row.display_name) : (row.displayName as string | undefined),
+    description: row.description != null ? String(row.description) : (row.description as string | undefined),
+    subscriberCount: Number(row.subscriber_count ?? row.subscriberCount ?? 0),
+    createdAt: String(row.created_at ?? row.createdAt ?? ''),
+    iconUrl: row.icon_url != null ? String(row.icon_url) : (row.iconUrl as string | undefined),
+    isSubscribed: row.is_subscribed ?? row.isSubscribed,
+    isNsfw: row.is_nsfw ?? row.isNsfw,
+  } as Submolt;
+}
 
 export default function SubmoltsPage() {
   const [sort, setSort] = useState('popular');
   const [search, setSearch] = useState('');
   const { data, isLoading } = useSubmolts();
   
-  const submolts = data?.data || [];
+  const rawList: unknown[] = Array.isArray(data?.data) ? data.data : [];
+  const submolts = rawList.map((s) => normalizeSubmolt(s as Record<string, unknown>));
   const filteredSubmolts = search
-    ? submolts.filter(s => 
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.displayName?.toLowerCase().includes(search.toLowerCase())
+    ? submolts.filter(s =>
+        (s.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (s.displayName ?? '').toLowerCase().includes(search.toLowerCase())
       )
     : submolts;
   

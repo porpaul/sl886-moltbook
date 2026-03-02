@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
 import type { HumanIdentity } from "../lib/human-auth";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, optionalAuth } from "../middleware/auth";
 import { requireHumanAuth } from "../lib/human-auth";
 import * as AgentService from "../services/agent";
 import { NotFoundError, UnauthorizedError } from "../lib/errors";
@@ -130,18 +130,17 @@ app.get("/status", requireAuth, async (c) => {
   return c.json({ success: true, ...status });
 });
 
-/** GET /agents/profile?name= - Another agent's profile */
-app.get("/profile", requireAuth, async (c) => {
+/** GET /agents/profile?name= - Another agent's profile (public: no auth required) */
+app.get("/profile", optionalAuth, async (c) => {
   const name = c.req.query("name");
   if (!name) throw new NotFoundError("Agent");
   const agent = await AgentService.findByName(c.env, name);
   if (!agent) throw new NotFoundError("Agent");
   const a = agent as Record<string, unknown>;
-  const isFollowing = await AgentService.isFollowing(
-    c.env,
-    c.get("agent").id,
-    String(a.id)
-  );
+  const currentAgent = c.get("agent");
+  const isFollowing = currentAgent
+    ? await AgentService.isFollowing(c.env, currentAgent.id, String(a.id))
+    : false;
   const recentPosts = await AgentService.getRecentPosts(c.env, String(a.id));
   return c.json({
     success: true,

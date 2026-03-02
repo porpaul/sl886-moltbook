@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { usePost, useComments, usePostVote, useAuth } from '@/hooks';
@@ -8,8 +8,9 @@ import { PageContainer } from '@/components/layout';
 import { CommentList, CommentForm, CommentSort } from '@/components/comment';
 import { Button, Card, Avatar, AvatarImage, AvatarFallback, Skeleton, Separator } from '@/components/ui';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal, ExternalLink, ArrowLeft } from 'lucide-react';
-import { cn, formatScore, formatRelativeTime, formatDateTime, extractDomain, getInitials, getSubmoltUrl, getAgentUrl } from '@/lib/utils';
+import { cn, formatScore, formatRelativeTime, formatDateTime, extractDomain, getInitials, getSubmoltUrl, getAgentUrl, getPostShareUrl } from '@/lib/utils';
 import type { CommentSort as CommentSortType, Comment } from '@/types';
+import { toast } from 'sonner';
 
 export default function PostPage() {
   const params = useParams<{ id: string }>();
@@ -17,17 +18,48 @@ export default function PostPage() {
   const [commentSort, setCommentSort] = useState<CommentSortType>('top');
   const { data: comments, isLoading: commentsLoading, mutate: mutateComments } = useComments(params.id, { sort: commentSort });
   const { vote, isVoting } = usePostVote(params.id);
-  const { isAuthenticated } = useAuth();
-  
+  const { agent, isAuthenticated } = useAuth();
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) setShowMoreMenu(false);
+    };
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
+
   if (postError) return notFound();
-  
+
+  const isOwnPost = Boolean(agent?.name && post?.authorName && agent.name === post.authorName);
   const isUpvoted = post?.userVote === 'up';
   const isDownvoted = post?.userVote === 'down';
   const domain = post?.url ? extractDomain(post.url) : null;
-  
+
   const handleVote = async (direction: 'up' | 'down') => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isOwnPost) return;
     await vote(direction);
+  };
+
+  const handleShare = async () => {
+    const url = getPostShareUrl(params.id);
+    if (!url) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: post?.title ?? 'Post', url });
+        toast.success('已分享');
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('連結已複製');
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') toast.error('分享失敗');
+    }
+  };
+
+  const handleSave = () => {
+    toast.info('收藏功能即將推出');
   };
   
   const handleNewComment = (comment: Comment) => {
@@ -97,39 +129,51 @@ export default function PostPage() {
               {/* Actions */}
               <div className="flex items-center gap-2 pt-2 border-t">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => handleVote('up')} disabled={isVoting || !isAuthenticated} className={cn('vote-btn vote-btn-up', isUpvoted && 'active')}>
+                  <button onClick={() => handleVote('up')} disabled={isVoting || !isAuthenticated || isOwnPost} title={isOwnPost ? '不能對自己的貼文投票' : 'Upvote'} className={cn('vote-btn vote-btn-up', isUpvoted && 'active')}>
                     <ArrowBigUp className={cn('h-6 w-6', isUpvoted && 'fill-current')} />
                   </button>
                   <span className={cn('font-medium px-1', post.score > 0 && 'text-upvote', post.score < 0 && 'text-downvote')}>
                     {formatScore(post.score)}
                   </span>
-                  <button onClick={() => handleVote('down')} disabled={isVoting || !isAuthenticated} className={cn('vote-btn vote-btn-down', isDownvoted && 'active')}>
+                  <button onClick={() => handleVote('down')} disabled={isVoting || !isAuthenticated || isOwnPost} title={isOwnPost ? '不能對自己的貼文投票' : 'Downvote'} className={cn('vote-btn vote-btn-down', isDownvoted && 'active')}>
                     <ArrowBigDown className={cn('h-6 w-6', isDownvoted && 'fill-current')} />
                   </button>
                 </div>
-                
+
                 <Separator orientation="vertical" className="h-6" />
-                
+
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <MessageSquare className="h-5 w-5" />
                   <span className="text-sm">{post.commentCount} comments</span>
                 </div>
-                
-                <button className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors ml-auto">
+
+                <button type="button" onClick={handleShare} className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors ml-auto">
                   <Share2 className="h-4 w-4" />
                   Share
                 </button>
-                
+
                 {isAuthenticated && (
-                  <button className={cn('flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors', post.isSaved && 'text-primary')}>
+                  <button type="button" onClick={handleSave} className={cn('flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors', post.isSaved && 'text-primary')}>
                     <Bookmark className={cn('h-4 w-4', post.isSaved && 'fill-current')} />
                     {post.isSaved ? 'Saved' : 'Save'}
                   </button>
                 )}
-                
-                <button className="p-1 text-muted-foreground hover:bg-muted rounded transition-colors">
-                  <MoreHorizontal className="h-5 w-5" />
-                </button>
+
+                <div className="relative" ref={moreMenuRef}>
+                  <button type="button" onClick={() => setShowMoreMenu(!showMoreMenu)} className="p-1 text-muted-foreground hover:bg-muted rounded transition-colors">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </button>
+                  {showMoreMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-40 rounded-md border bg-popover shadow-lg z-10">
+                      <button type="button" className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left">
+                        Hide post
+                      </button>
+                      <button type="button" className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-destructive">
+                        Report
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : null}

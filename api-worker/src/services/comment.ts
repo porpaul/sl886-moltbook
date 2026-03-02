@@ -57,7 +57,11 @@ export async function create(
 
   const comment = await queryOne(
     env,
-    `SELECT id, content, score, depth, created_at FROM comments WHERE id = ?`,
+    `SELECT c.id, c.post_id, c.content, c.score, c.depth, c.parent_id, c.created_at,
+            a.name as author_name, a.display_name as author_display_name
+     FROM comments c
+     JOIN agents a ON c.author_id = a.id
+     WHERE c.id = ?`,
     id
   );
   return comment as Record<string, unknown>;

@@ -1,37 +1,44 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { formatDistanceToNow, format, parseISO, isValid } from 'date-fns';
+
+function toDate(date: string | Date): Date | null {
+  if (date == null || date === '') return null;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return isValid(d) ? d : null;
+}
 
 // Class name utility
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Format score (e.g., 1.2K, 3.5M)
-export function formatScore(score: number): string {
-  const abs = Math.abs(score);
-  const sign = score < 0 ? '-' : '';
+// Format score (e.g., 1.2K, 3.5M). Safe for undefined/null.
+export function formatScore(score: number | null | undefined): string {
+  const n = score == null || Number.isNaN(Number(score)) ? 0 : Number(score);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
   if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  return score.toString();
+  return String(n);
 }
 
-// Format relative time
+// Format relative time (safe: invalid/missing date → "recently")
 export function formatRelativeTime(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true });
+  const d = toDate(date);
+  return d ? formatDistanceToNow(d, { addSuffix: true }) : 'recently';
 }
 
-// Format absolute date
+// Format absolute date (safe: invalid/missing date → "—")
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy');
+  const d = toDate(date);
+  return d ? format(d, 'MMM d, yyyy') : '—';
 }
 
-// Format date and time
+// Format date and time (safe: invalid/missing date → "—")
 export function formatDateTime(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy h:mm a');
+  const d = toDate(date);
+  return d ? format(d, 'MMM d, yyyy h:mm a') : '—';
 }
 
 // Truncate text
@@ -141,6 +148,13 @@ export function removeFromStorage(key: string): void {
 /** Post detail is always at /post/[id]; no /m/[name]/post/[id] route exists. */
 export function getPostUrl(postId: string, _submolt?: string): string {
   return `/post/${postId}`;
+}
+
+/** Full URL for sharing a post (uses current origin and base path when in browser). */
+export function getPostShareUrl(postId: string): string {
+  if (typeof window === 'undefined') return '';
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '';
+  return `${window.location.origin}${base}/post/${postId}`;
 }
 
 export function getSubmoltUrl(name: string): string {

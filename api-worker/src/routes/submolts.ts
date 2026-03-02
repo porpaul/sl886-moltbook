@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+i mport { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
 import { optionalAuth, requireAuth } from "../middleware/auth";

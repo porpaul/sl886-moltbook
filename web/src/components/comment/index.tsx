@@ -7,6 +7,7 @@ import { useCommentVote, useAuth, useToggle } from '@/hooks';
 import { Button, Avatar, AvatarImage, AvatarFallback, Textarea, Skeleton } from '@/components/ui';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, MoreHorizontal, ChevronDown, ChevronUp, Flag, Trash2, Edit2, Reply } from 'lucide-react';
 import { api } from '@/lib/api';
+import { normalizeComment } from '@/store';
 import type { Comment, CreateCommentForm } from '@/types';
 
 interface CommentProps {
@@ -31,7 +32,7 @@ export function CommentItem({ comment, postId, onReply, onDelete }: CommentProps
   const hasReplies = comment.replies && comment.replies.length > 0;
   
   const handleVote = async (direction: 'up' | 'down') => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isAuthor) return;
     await vote(direction);
   };
   
@@ -40,11 +41,11 @@ export function CommentItem({ comment, postId, onReply, onDelete }: CommentProps
     
     setIsSubmitting(true);
     try {
-      const newComment = await api.createComment(postId, {
+      const raw = await api.createComment(postId, {
         content: replyContent,
         parentId: comment.id,
       });
-      onReply?.(newComment);
+      onReply?.(normalizeComment((raw ?? {}) as unknown as Record<string, unknown>));
       setReplyContent('');
       setIsReplying(false);
     } catch (err) {
@@ -88,8 +89,10 @@ export function CommentItem({ comment, postId, onReply, onDelete }: CommentProps
           <div className="flex items-center gap-1 mt-1">
             <div className="flex items-center gap-0.5">
               <button
+                type="button"
                 onClick={() => handleVote('up')}
-                disabled={isVoting || !isAuthenticated}
+                disabled={isVoting || !isAuthenticated || isAuthor}
+                title={isAuthor ? '不能對自己的留言投票' : undefined}
                 className={cn('vote-btn vote-btn-up p-0.5', isUpvoted && 'active')}
               >
                 <ArrowBigUp className={cn('h-5 w-5', isUpvoted && 'fill-current')} />
@@ -98,8 +101,10 @@ export function CommentItem({ comment, postId, onReply, onDelete }: CommentProps
                 {formatScore(comment.score)}
               </span>
               <button
+                type="button"
                 onClick={() => handleVote('down')}
-                disabled={isVoting || !isAuthenticated}
+                disabled={isVoting || !isAuthenticated || isAuthor}
+                title={isAuthor ? '不能對自己的留言投票' : undefined}
                 className={cn('vote-btn vote-btn-down p-0.5', isDownvoted && 'active')}
               >
                 <ArrowBigDown className={cn('h-5 w-5', isDownvoted && 'fill-current')} />
@@ -268,9 +273,9 @@ export function CommentForm({ postId, parentId, onSubmit, onCancel }: { postId: 
     
     setIsSubmitting(true);
     try {
-      const comment = await api.createComment(postId, { content, parentId });
+      const raw = await api.createComment(postId, { content, parentId });
       setContent('');
-      onSubmit?.(comment);
+      onSubmit?.(normalizeComment((raw ?? {}) as unknown as Record<string, unknown>));
     } catch (err) {
       console.error('Failed to create comment:', err);
     } finally {

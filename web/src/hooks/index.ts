@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import useSWR, { SWRConfiguration } from 'swr';
 import { useInView } from 'react-intersection-observer';
 import { api, ApiError } from '@/lib/api';
-import { useAuthStore, useFeedStore, useUIStore, useSubscriptionStore, normalizePost } from '@/store';
+import { useAuthStore, useFeedStore, useUIStore, useSubscriptionStore, normalizePost, normalizeComment } from '@/store';
 
 export { useSubscriptionStore };
 import type { Post, Comment, Agent, Submolt, PostSort, CommentSort } from '@/types';
@@ -59,7 +59,11 @@ export function usePostVote(postId: string) {
 
 // Comment hooks
 export function useComments(postId: string, options: { sort?: CommentSort } = {}, config?: SWRConfiguration) {
-  return useSWR<Comment[]>(postId ? ['comments', postId, options.sort || 'top'] : null, () => api.getComments(postId, options), config);
+  return useSWR<Comment[]>(
+    postId ? ['comments', postId, options.sort || 'top'] : null,
+    () => api.getComments(postId, options).then((list) => list.map((c) => normalizeComment(c as unknown as Record<string, unknown>))),
+    config
+  );
 }
 
 export function useCommentVote(commentId: string) {

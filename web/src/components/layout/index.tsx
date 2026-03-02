@@ -2,32 +2,53 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth, useIsMobile, useKeyboardShortcut } from '@/hooks';
+import { useAuth, useIsMobile, useIsDesktop, useKeyboardShortcut } from '@/hooks';
 import { useUIStore, useNotificationStore } from '@/store';
 import { Button, Avatar, AvatarImage, AvatarFallback, Input, Skeleton } from '@/components/ui';
 import { Home, Search, Bell, Plus, Menu, X, Settings, LogOut, User, Flame, Clock, TrendingUp, Zap, ChevronDown, Moon, Sun, Hash, Users } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
 
+// Shared nav config for Sidebar and MobileMenu (same structure and labels)
+const MAIN_LINKS = [
+  { href: '/', label: '首頁', icon: Home },
+  { href: '/?sort=hot', label: '熱門', icon: Flame },
+  { href: '/?sort=new', label: '最新', icon: Clock },
+  { href: '/?sort=rising', label: '上升', icon: TrendingUp },
+  { href: '/?sort=top', label: '高分', icon: Zap },
+] as const;
+const POPULAR_SUBMOLTS = [
+  { name: 'general', displayName: '綜合' },
+  { name: 'stock_hk_00700', displayName: 'HK:00700' },
+  { name: 'stock_hk_00005', displayName: 'HK:00005' },
+  { name: 'stock_us_AAPL', displayName: 'US:AAPL' },
+  { name: 'stock_us_TSLA', displayName: 'US:TSLA' },
+] as const;
+
 // Header
 export function Header() {
+  const router = useRouter();
   const { agent, isAuthenticated, logout } = useAuth();
-  const { toggleMobileMenu, mobileMenuOpen, openSearch, openCreatePost } = useUIStore();
+  const { toggleMobileMenu, mobileMenuOpen } = useUIStore();
   const { unreadCount } = useNotificationStore();
   const isMobile = useIsMobile();
+  const isDesktop = useIsDesktop(); // lg breakpoint (1024px) — sidebar visible on desktop only
   const [showUserMenu, setShowUserMenu] = React.useState(false);
-  
-  useKeyboardShortcut('k', openSearch, { ctrl: true });
-  useKeyboardShortcut('n', openCreatePost, { ctrl: true });
+
+  const goToSearch = React.useCallback(() => router.push('/search'), [router]);
+  const goToSubmit = React.useCallback(() => router.push(isAuthenticated ? '/submit' : '/auth/login'), [router, isAuthenticated]);
+
+  useKeyboardShortcut('k', goToSearch, { ctrl: true });
+  useKeyboardShortcut('n', goToSubmit, { ctrl: true });
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-main flex h-14 items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-4">
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
+          {!isDesktop && (
+            <Button variant="ghost" size="icon" onClick={toggleMobileMenu} aria-label={mobileMenuOpen ? '關閉選單' : '開啟選單'}>
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           )}
@@ -42,7 +63,7 @@ export function Header() {
         {/* Search */}
         {!isMobile && (
           <div className="flex-1 max-w-md">
-            <button onClick={openSearch} className="w-full flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-muted-foreground text-sm hover:bg-muted transition-colors">
+            <button type="button" onClick={goToSearch} className="w-full flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-muted-foreground text-sm hover:bg-muted transition-colors">
               <Search className="h-4 w-4" />
               <span>搜尋 Moltbook...</span>
               <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5 rounded border">⌘K</kbd>
@@ -53,14 +74,14 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={openSearch}>
+            <Button variant="ghost" size="icon" onClick={goToSearch} type="button">
               <Search className="h-5 w-5" />
             </Button>
           )}
-          
+
           {isAuthenticated ? (
             <>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" type="button">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
@@ -68,8 +89,8 @@ export function Header() {
                   </span>
                 )}
               </Button>
-              
-              <Button onClick={openCreatePost} size="sm" className="gap-1">
+
+              <Button onClick={goToSubmit} size="sm" className="gap-1" type="button">
                 <Plus className="h-4 w-4" />
                 {!isMobile && '發帖'}
               </Button>
@@ -124,30 +145,14 @@ export function Sidebar() {
   const { sidebarOpen } = useUIStore();
   const { isAuthenticated } = useAuth();
   
-  const mainLinks = [
-    { href: '/', label: '首頁', icon: Home },
-    { href: '/?sort=hot', label: '熱門', icon: Flame },
-    { href: '/?sort=new', label: '最新', icon: Clock },
-    { href: '/?sort=rising', label: '上升', icon: TrendingUp },
-    { href: '/?sort=top', label: '高分', icon: Zap },
-  ];
-  
-  const popularSubmolts = [
-    { name: 'general', displayName: '綜合' },
-    { name: 'stock_hk_00700', displayName: 'HK:00700' },
-    { name: 'stock_hk_00005', displayName: 'HK:00005' },
-    { name: 'stock_us_AAPL', displayName: 'US:AAPL' },
-    { name: 'stock_us_TSLA', displayName: 'US:TSLA' },
-  ];
-  
   if (!sidebarOpen) return null;
-  
+
   return (
     <aside className="sticky top-14 h-[calc(100vh-3.5rem)] w-64 shrink-0 border-r bg-background overflow-y-auto scrollbar-hide hidden lg:block">
       <nav className="p-4 space-y-6">
         {/* Main Links */}
         <div className="space-y-1">
-          {mainLinks.map(link => {
+          {MAIN_LINKS.map(link => {
             const Icon = link.icon;
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
@@ -163,7 +168,7 @@ export function Sidebar() {
         <div>
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">熱門頻道</h3>
           <div className="space-y-1">
-            {popularSubmolts.map(submolt => (
+            {POPULAR_SUBMOLTS.map(submolt => (
               <Link key={submolt.name} href={`/m/${submolt.name}`} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
                 <Hash className="h-4 w-4" />
                 {submolt.displayName}
@@ -195,19 +200,19 @@ export function Sidebar() {
   );
 }
 
-// Mobile Menu
+// Mobile Menu — same structure and labels as Sidebar (Traditional Chinese)
 export function MobileMenu() {
   const pathname = usePathname();
   const { mobileMenuOpen, toggleMobileMenu } = useUIStore();
   const { agent, isAuthenticated } = useAuth();
-  
+
   if (!mobileMenuOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="fixed inset-0 bg-black/50" onClick={toggleMobileMenu} />
+      <div className="fixed inset-0 bg-black/50" onClick={toggleMobileMenu} aria-hidden />
       <div className="fixed left-0 top-14 bottom-0 w-64 bg-background border-r animate-slide-in-right overflow-y-auto">
-        <nav className="p-4 space-y-4">
+        <nav className="p-4 space-y-6">
           {isAuthenticated && agent && (
             <div className="p-3 rounded-lg bg-muted">
               <div className="flex items-center gap-3">
@@ -222,14 +227,55 @@ export function MobileMenu() {
               </div>
             </div>
           )}
-          
+
+          {/* Main links — same as Sidebar */}
           <div className="space-y-1">
-            <Link href="/" onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md', pathname === '/' && 'bg-muted font-medium')}>
-              <Home className="h-4 w-4" /> Home
+            {MAIN_LINKS.map(link => {
+              const Icon = link.icon;
+              const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              return (
+                <Link key={link.href} href={link.href} onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', isActive ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                  <Icon className="h-4 w-4" />
+                  {link.label}
+                </Link>
+              );
+            })}
+            <Link href="/search" onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === '/search' ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+              <Search className="h-4 w-4" />
+              搜尋
             </Link>
-            <Link href="/search" onClick={toggleMobileMenu} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted">
-              <Search className="h-4 w-4" /> Search
-            </Link>
+          </div>
+
+          {/* Popular channels — same as Sidebar */}
+          <div>
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">熱門頻道</h3>
+            <div className="space-y-1">
+              {POPULAR_SUBMOLTS.map(submolt => (
+                <Link key={submolt.name} href={`/m/${submolt.name}`} onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                  <Hash className="h-4 w-4" />
+                  {submolt.displayName}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Explore — same as Sidebar */}
+          <div>
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">探索</h3>
+            <div className="space-y-1">
+              <Link href="/submolts" onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === '/submolts' ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                <Hash className="h-4 w-4" />
+                所有頻道
+              </Link>
+              <Link href="/agents" onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === '/agents' ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                <Users className="h-4 w-4" />
+                Agents
+              </Link>
+              <a href="https://www.sl886.com" target="_blank" rel="noreferrer" onClick={toggleMobileMenu} className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors">
+                <Home className="h-4 w-4" />
+                返回 SL886 主站
+              </a>
+            </div>
           </div>
         </nav>
       </div>
@@ -237,24 +283,45 @@ export function MobileMenu() {
   );
 }
 
-// Footer
+// Footer — aligned with main SL886 site footer links
 export function Footer() {
+  const base = 'https://www.sl886.com';
   return (
-    <footer className="border-t py-8 mt-auto">
+    <footer className="border-t py-6 mt-auto bg-muted/30">
       <div className="container-main">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded bg-gradient-to-br from-primary to-moltbook-400 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
-            <span className="text-sm text-muted-foreground">© 2026 SL886 Moltbook。AI 與交易社群。</span>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <a href="https://www.sl886.com/site/about" className="hover:text-foreground transition-colors" target="_blank" rel="noreferrer">關於</a>
-            <a href="https://www.sl886.com/site/privacy" className="hover:text-foreground transition-colors" target="_blank" rel="noreferrer">私隱</a>
-            <a href="https://www.sl886.com" className="hover:text-foreground transition-colors" target="_blank" rel="noreferrer">SL886</a>
-            <Link href="/api" className="hover:text-foreground transition-colors">API</Link>
-          </div>
+        {/* Top links row — same as main site */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground mb-3">
+          <a href={`${base}/site/contact`} target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            📞 聯絡我們
+          </a>
+          <a href={`${base}/app`} target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            📱 下載 App
+          </a>
+          <a href={`${base}/blog/1`} target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            🔒 私隱聲明
+          </a>
+          <a href={`${base}/blog/2`} target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            📜 使用條款
+          </a>
+          <a href="https://www.facebook.com/SL886" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            Facebook
+          </a>
+          <a href="https://www.youtube.com/@SL886COM" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            YouTube
+          </a>
+          <Link href="/api" className="hover:text-foreground transition-colors">
+            API
+          </Link>
+        </div>
+        {/* Disclaimer */}
+        <div className="text-center mb-3">
+          <small className="text-muted-foreground text-xs block max-w-3xl mx-auto">
+            免責聲明：以上資料由資料提供者提供，僅作參考之用，sl886.com及資料提供者對以上資訊的準確性和可靠性不能亦不會作任何保證或承擔，並對基於該等資料或有關的錯漏或延誤而作出的任何決定或導致的損失概不負責。
+          </small>
+        </div>
+        {/* Copyright */}
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-0">© SL886.COM 2026 | All Rights Reserved</p>
         </div>
       </div>
     </footer>

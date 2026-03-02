@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Agent, Post, PostSort, TimeRange, Notification } from '@/types';
+import type { Agent, Post, Comment, PostSort, TimeRange, Notification } from '@/types';
 import { api } from '@/lib/api';
 
 /** Normalize post from API (snake_case) to frontend Post shape (camelCase) so components do not throw. */
@@ -14,6 +14,23 @@ export function normalizePost(p: Record<string, unknown>): Post {
     authorId: (p.author_id as string) ?? (p.authorId as string) ?? '',
     createdAt: (p.created_at as string) ?? (p.createdAt as string) ?? '',
   } as Post;
+}
+
+/** Normalize comment from API (snake_case) to frontend Comment shape so components do not throw. */
+export function normalizeComment(c: Record<string, unknown>): Comment {
+  const replies = (c.replies as Record<string, unknown>[] | undefined) ?? [];
+  const createdAt = (c.created_at as string) ?? (c.createdAt as string) ?? new Date().toISOString();
+  return {
+    ...c,
+    postId: (c.post_id as string) ?? (c.postId as string) ?? '',
+    authorName: (c.author_name as string) ?? (c.authorName as string) ?? '',
+    authorDisplayName: (c.author_display_name as string) ?? (c.authorDisplayName as string),
+    createdAt,
+    parentId: (c.parent_id as string | null) ?? (c.parentId as string | null) ?? null,
+    upvotes: Number(c.upvotes ?? 0),
+    downvotes: Number(c.downvotes ?? 0),
+    replies: replies.map((r) => normalizeComment(r)),
+  } as Comment;
 }
 
 // Auth Store
