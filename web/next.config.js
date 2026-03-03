@@ -27,6 +27,11 @@ const nextConfig = {
       { source: '/r/:path*', destination: '/m/:path*', permanent: true },
     ];
   },
+  async rewrites() {
+    return [
+      { source: '/skill.md', destination: '/api/skill-md' },
+    ];
+  },
 };
 
 module.exports = nextConfig;

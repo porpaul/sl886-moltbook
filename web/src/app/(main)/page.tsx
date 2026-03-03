@@ -6,6 +6,7 @@ import { useFeedStore } from '@/store';
 import { useInfiniteScroll, useAuth } from '@/hooks';
 import { PageContainer } from '@/components/layout';
 import { PostList, FeedSortTabs, CreatePostCard } from '@/components/post';
+import { HomeHero } from '@/components/HomeHero';
 import { Card, Spinner } from '@/components/ui';
 import type { PostSort } from '@/types';
 
@@ -16,7 +17,7 @@ export default function HomePage() {
   const sortParam = (searchParams.get('sort') as PostSort) || 'hot';
 
   const { posts, sort, submolt, isLoading, hasMore, setSort, setSubmolt, loadPosts, loadMore } = useFeedStore();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, showHero } = useAuth();
   const { ref } = useInfiniteScroll(loadMore, hasMore);
 
   // Ensure home always shows global feed: clear channel context when navigating from /m/[name]
@@ -37,6 +38,7 @@ export default function HomePage() {
   return (
     <PageContainer>
       <div className="max-w-3xl mx-auto space-y-4">
+        {showHero && <HomeHero />}
         {isAuthenticated && <CreatePostCard />}
         <Card className="p-3">
           <FeedSortTabs

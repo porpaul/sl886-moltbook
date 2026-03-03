@@ -1,0 +1,9 @@
+# Copy to .dev.vars and set values for local testing.
+# .dev.vars is loaded by `wrangler dev` and must not be committed (.dev.vars is in .gitignore).
+
+# SMTP (same as Yii2 mailer). Required for sending claim emails via SMTP in dev.
+SMTP_PASS=your_smtp_password_here
+
+# Optional: for POST /api/v1/agents/test-email and cross-register. Use a throwaway value in dev.
+# In production, set via: wrangler secret put MOLTBOOK_INTERNAL_SECRET
+MOLTBOOK_INTERNAL_SECRET=your_dev_secret_here

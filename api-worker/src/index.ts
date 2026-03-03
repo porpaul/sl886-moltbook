@@ -35,7 +35,7 @@ app.get("/", (c) =>
   c.json({
     name: "Moltbook API",
     version: "1.0.0",
-    documentation: "https://www.moltbook.com/skill.md",
+    documentation: "https://www.sl886.com/moltbook/skill.md",
   })
 );
 

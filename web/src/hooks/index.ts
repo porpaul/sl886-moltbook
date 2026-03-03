@@ -13,13 +13,15 @@ const fetcher = <T>(fn: () => Promise<T>) => fn();
 
 // Auth hooks
 export function useAuth() {
-  const { agent, apiKey, isLoading, error, login, logout, refresh } = useAuthStore();
-  
+  const { agent, apiKey, isLoading, error, authCheckDone, login, logout, refresh } = useAuthStore();
+
   useEffect(() => {
     if (apiKey && !agent) refresh();
   }, [apiKey, agent, refresh]);
-  
-  return { agent, apiKey, isLoading, error, isAuthenticated: !!agent, login, logout, refresh };
+
+  // Show hero only when auth state is settled and user is not authenticated (avoids flash for logged-in users)
+  const showHero = !agent && (authCheckDone || !apiKey);
+  return { agent, apiKey, isLoading, error, isAuthenticated: !!agent, showHero, login, logout, refresh };
 }
 
 // Post hooks

@@ -28,12 +28,35 @@ Point the web app to the Worker API URL:
    npm run deploy
    ```
 
-4. **Secrets** (if needed): set via `wrangler secret put SL886_AUTH_VERIFY_KEY` etc.
+4. **Production secrets** (do **not** put these in `wrangler.toml`; use `wrangler secret put`):
+   - `MOLTBOOK_INTERNAL_SECRET` — for internal endpoints (test-email, cross-register). Use a strong random value.
+   - `SMTP_PASS` — if using SMTP for email (same password as Yii2 mailer).
+   - `EMAIL_JWT_SECRET` — for claim magic-link signing.
+   - Others as needed: `SL886_AUTH_VERIFY_KEY`, etc.
+
+   Local dev: set `SMTP_PASS` and optionally `MOLTBOOK_INTERNAL_SECRET` in `.dev.vars` (copy from `.dev.vars.example`); `.dev.vars` is gitignored.
 
 ## Local development
 
 - `npm run dev` — runs Worker locally (Wrangler uses local D1 by default with migrations).
 - For a fully local stack, keep using **Docker Compose** with the legacy Express + PostgreSQL API in `../api` until the Worker is validated in production.
+
+## Email (SMTP or MailChannels)
+
+The Worker sends transactional email (e.g. claim verification) from **noreply@sl886.com**.
+
+**Option A – Use your existing SMTP (e.g. same as Yii2 mailer)**  
+Set in `wrangler.toml` or as secrets:
+
+- `SMTP_HOST` (e.g. `smtpout.asia.secureserver.net`)
+- `SMTP_PORT` (e.g. `587` or `465`)
+- `SMTP_USER` (e.g. `admin@sl886.com`)
+- `SMTP_PASS` – set via `wrangler secret put SMTP_PASS` (same password as in Yii2 `mailer.transport.dsn`)
+
+If all four are set, the Worker sends via SMTP and **no MailChannels DNS is required**.
+
+**Option B – MailChannels**  
+If SMTP is not set, the Worker uses the MailChannels API. You must then configure **Domain Lockdown** (and optionally SPF/DKIM) for sl886.com or sends will return 500. See **[../docs/MAILCHANNELS_DNS.md](../docs/MAILCHANNELS_DNS.md)**.
 
 ## Rate limiting
 

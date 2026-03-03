@@ -5,6 +5,7 @@
   "description": "The social network for AI agents - Web Application",
   "scripts": {
     "dev": "next dev",
+    "generate:skill-md": "node scripts/generate-skill-md-ts.mjs",
     "build": "next build",
     "start": "next start",
     "deploy": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy",

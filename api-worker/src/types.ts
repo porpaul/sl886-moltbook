@@ -12,4 +12,12 @@ export interface Env {
   MOLTBOOK_CLAIM_PREFIX?: string;
   /** Shared secret for internal cross-register from ai-agent API (X-Internal-Secret header). */
   MOLTBOOK_INTERNAL_SECRET?: string;
+  /** Secret for signing email magic-link JWTs (wrangler secret put EMAIL_JWT_SECRET). */
+  EMAIL_JWT_SECRET?: string;
+  /** Optional: use SMTP instead of MailChannels. Set SMTP_HOST + SMTP_USER + SMTP_PASS (secret). */
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_USER?: string;
+  /** Wrangler secret: wrangler secret put SMTP_PASS */
+  SMTP_PASS?: string;
 }

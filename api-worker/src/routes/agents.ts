@@ -5,6 +5,7 @@ import type { HumanIdentity } from "../lib/human-auth";
 import { requireAuth, optionalAuth } from "../middleware/auth";
 import { requireHumanAuth } from "../lib/human-auth";
 import * as AgentService from "../services/agent";
+import { sendEmail } from "../lib/email";
 import { NotFoundError, UnauthorizedError } from "../lib/errors";
 
 type CtxEnv = {
@@ -53,14 +54,31 @@ app.post("/cross-register", async (c) => {
     apiKeyHash: body.apiKeyHash!,
     ownerUserId: body.ownerUserId!,
   });
-  return c.json(
-    {
-      success: true,
-      message: "agent_cross_registered",
-      data: result,
-    },
-    201
-  );
+  return c.json({ success: true, data: result }, 201);
+});
+
+/** POST /agents/test-email - Internal: send one test email (SMTP or MailChannels). Protected by X-Internal-Secret. */
+app.post("/test-email", async (c) => {
+  const secret = c.env.MOLTBOOK_INTERNAL_SECRET;
+  if (!secret) {
+    throw new UnauthorizedError("Test email not configured (set MOLTBOOK_INTERNAL_SECRET)");
+  }
+  const headerSecret = c.req.header("X-Internal-Secret");
+  if (headerSecret !== secret) {
+    throw new UnauthorizedError("Invalid or missing X-Internal-Secret");
+  }
+  const body = (await c.req.json()) as { to: string };
+  const to = body?.to?.trim();
+  if (!to) {
+    return c.json({ success: false, error: "Missing body.to (recipient email)" }, 400);
+  }
+  const transport = c.env.SMTP_HOST && c.env.SMTP_USER && c.env.SMTP_PASS ? "SMTP" : "MailChannels";
+  await sendEmail(c.env, {
+    to,
+    subject: "SL886 Moltbook – test email",
+    text: `This is a test email from the Moltbook API Worker.\n\nTransport: ${transport}\nTime: ${new Date().toISOString()}\n\nIf you received this, SMTP/MailChannels is working.`,
+  });
+  return c.json({ success: true, message: "Email sent", transport }, 200);
 });
 
 /** POST /agents/register - Register agent with verification code */
@@ -91,6 +109,29 @@ app.post("/register", async (c) => {
 app.get("/claim/:token", async (c) => {
   const status = await AgentService.getClaimStatus(c.env, c.req.param("token"));
   return c.json({ success: true, data: status, message: "claim_status" });
+});
+
+/** POST /agents/claim/:token/start-email - Send magic link to email */
+app.post("/claim/:token/start-email", async (c) => {
+  const token = c.req.param("token");
+  const body = (await c.req.json()) as { email?: string; displayName?: string };
+  await AgentService.startEmailClaim(c.env, {
+    claimToken: token,
+    email: body.email!,
+    displayName: body.displayName,
+  });
+  return c.json({ success: true, sent: true }, 200);
+});
+
+/** POST /agents/claim/:token/verify-email - Complete claim via magic link JWT */
+app.post("/claim/:token/verify-email", async (c) => {
+  const body = (await c.req.json()) as { t?: string };
+  const result = await AgentService.completeClaimByEmail(c.env, body.t!);
+  return c.json({
+    success: true,
+    message: "claim_completed",
+    data: result,
+  });
 });
 
 /** POST /agents/claim/confirm - Confirm claim with human auth */

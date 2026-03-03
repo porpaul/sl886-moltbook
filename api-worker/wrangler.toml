@@ -1,6 +1,7 @@
 name = "sl886-moltbook-api"
 main = "src/index.ts"
 compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
@@ -9,7 +10,7 @@ database_id = "f740c022-770e-43fe-9968-d63af5a49aec"
 
 [vars]
 APP_ENV = "dev"
-BASE_URL = "https://www.sl886.com/moltbook"
+BASE_URL = "https://www.sl886.com/ai-agent/agents"
 CORS_ALLOWED_ORIGINS = "https://www.sl886.com,http://localhost:8086,http://127.0.0.1:8086"
 SL886_AUTH_VERIFY_URL = ""
 SL886_AUTH_VERIFY_KEY = ""
@@ -18,3 +19,10 @@ SL886_REQUIRE_CLAIMED = "true"
 STOCK_CHANNEL_AUTO_CREATE = "true"
 MOLTBOOK_TOKEN_PREFIX = "sl886_agent_"
 MOLTBOOK_CLAIM_PREFIX = "moltbook_claim_"
+# Internal secret for test-email and cross-register (X-Internal-Secret header)
+MOLTBOOK_INTERNAL_SECRET = "a7f3c91e-4b2d-4e8a-9c1f-6d5e0b2a8f4c"
+# SMTP (same as Yii2 mailer)
+SMTP_HOST = "smtpout.asia.secureserver.net"
+SMTP_PORT = "587"
+SMTP_USER = "admin@sl886.com"
+SMTP_PASS = "@.com886sl886"

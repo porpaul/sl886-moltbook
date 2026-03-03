@@ -7,9 +7,12 @@ import {
   generateVerificationCode,
 } from "../lib/auth-utils";
 import { BadRequestError, NotFoundError, ConflictError } from "../lib/errors";
+import { signEmailClaimJwt, verifyEmailClaimJwt } from "../lib/jwt";
+import { sendEmail } from "../lib/email";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
+const EMAIL_CLAIM_JWT_TTL_SEC = 10 * 60; // 10 minutes
 
 function generateAgentName(externalAgentId: string): string {
   const base = String(externalAgentId || "")
@@ -378,6 +381,95 @@ export async function getClaimStatus(
       name: c.name,
       displayName: c.display_name ?? null,
     },
+  };
+}
+
+/** Start email-based claim: send magic link to email. */
+export async function startEmailClaim(
+  env: Env,
+  params: { claimToken: string; email: string; displayName?: string }
+): Promise<{ sent: boolean }> {
+  const secret = env.EMAIL_JWT_SECRET;
+  if (!secret) throw new BadRequestError("Email claim not configured");
+  const email = String(params.email || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) throw new BadRequestError("Valid email is required");
+
+  const tokenHash = await sha256Hex(params.claimToken);
+  const claim = await queryOne(
+    env,
+    `SELECT id, agent_id, expires_at, used_at FROM agent_claim_tokens WHERE token_hash = ?`,
+    tokenHash
+  );
+  if (!claim) throw new NotFoundError("Claim token");
+  const c = claim as { id: string; agent_id: string; expires_at: string; used_at: string | null };
+  if (c.used_at) throw new ConflictError("claim token already used");
+  if (new Date(c.expires_at).getTime() <= Date.now()) {
+    throw new BadRequestError("claim token expired");
+  }
+
+  const jwt = await signEmailClaimJwt(
+    secret,
+    { claimToken: params.claimToken, email },
+    EMAIL_CLAIM_JWT_TTL_SEC
+  );
+  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/ai-agent/agents";
+  const verifyUrl = `${baseUrl}/claim/${encodeURIComponent(params.claimToken)}/verify-email?t=${encodeURIComponent(jwt)}`;
+  const agent = await queryOne(env, "SELECT name, display_name FROM agents WHERE id = ?", c.agent_id);
+  const displayName = (agent as { display_name: string | null } | null)?.display_name ?? params.displayName ?? "your agent";
+  await sendEmail(env, {
+    to: email,
+    subject: "Claim your AI agent on SL886 Moltbook",
+    text: `Click the link below to claim "${displayName}" on SL886 Moltbook. This link expires in 10 minutes.\n\n${verifyUrl}\n\nIf you didn't request this, you can ignore this email.`,
+  });
+  return { sent: true };
+}
+
+/** Complete claim by email: verify JWT and mark agent as claimed (no tweet). */
+export async function completeClaimByEmail(
+  env: Env,
+  verifyJwt: string
+): Promise<{ agentId: string; name: string; displayName: string | null; email: string }> {
+  const secret = env.EMAIL_JWT_SECRET;
+  if (!secret) throw new BadRequestError("Email claim not configured");
+  const payload = await verifyEmailClaimJwt(secret, verifyJwt);
+
+  const tokenHash = await sha256Hex(payload.claimToken);
+  const claim = await queryOne(
+    env,
+    `SELECT id, agent_id, expires_at, used_at FROM agent_claim_tokens WHERE token_hash = ?`,
+    tokenHash
+  );
+  if (!claim) throw new NotFoundError("Claim token");
+  const c = claim as { id: string; agent_id: string; expires_at: string; used_at: string | null };
+  if (c.used_at) throw new ConflictError("claim token already used");
+  if (new Date(c.expires_at).getTime() <= Date.now()) {
+    throw new BadRequestError("claim token expired");
+  }
+
+  await batch(env, [
+    {
+      sql: `UPDATE agents SET owner_email = ?, status = 'active', is_claimed = 1,
+            claimed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
+      params: [payload.email, c.agent_id],
+    },
+    {
+      sql: `UPDATE agent_claim_tokens SET used_at = datetime('now'), claimed_by_email = ? WHERE id = ?`,
+      params: [payload.email, c.id],
+    },
+  ]);
+
+  const agent = await queryOne(
+    env,
+    "SELECT id, name, display_name FROM agents WHERE id = ?",
+    c.agent_id
+  );
+  if (!agent) throw new NotFoundError("Agent");
+  const a = agent as { id: string; name: string; display_name: string | null };
+  return {
+    agentId: a.id,
+    name: a.name,
+    displayName: a.display_name ?? null,
+    email: payload.email,
   };
 }
 
