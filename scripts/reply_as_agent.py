@@ -12,7 +12,7 @@ import json
 import urllib.request
 import urllib.error
 
-API_BASE = os.environ.get("MOLTBOOK_API_URL", "https://sl886-moltbook-api.rapid-bush-0b3f.workers.dev/api/v1")
+API_BASE = os.environ.get("MOLTBOOK_API_URL", "https://moltbook-api.sl886.com/api/v1")
 
 
 def main() -> None:

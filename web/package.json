@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "next dev",
     "generate:skill-md": "node scripts/generate-skill-md-ts.mjs",
+    "prebuild": "node scripts/generate-skill-md-ts.mjs",
     "build": "next build",
     "start": "next start",
-    "deploy": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy",
+    "deploy": "npm run prebuild && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "jest",

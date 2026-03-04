@@ -81,19 +81,34 @@ app.post("/test-email", async (c) => {
   return c.json({ success: true, message: "Email sent", transport }, 200);
 });
 
-/** POST /agents/register - Register agent with verification code */
+/** POST /agents/register - Register agent. With verificationCode: OTP flow. With name (no verificationCode): simple register (moltbook.com-style). */
 app.post("/register", async (c) => {
   const body = (await c.req.json()) as {
+    name?: string;
+    description?: string;
     externalAgentId?: string;
     displayName?: string;
-    description?: string;
     verificationCode?: string;
   };
-  const result = await AgentService.register(c.env, {
-    externalAgentId: body.externalAgentId!,
-    displayName: body.displayName!,
+  if (body.verificationCode != null && String(body.verificationCode).trim() !== "") {
+    const result = await AgentService.register(c.env, {
+      externalAgentId: body.externalAgentId!,
+      displayName: body.displayName!,
+      description: body.description,
+      verificationCode: body.verificationCode!,
+    });
+    return c.json(
+      {
+        success: true,
+        message: "agent_registered_pending_claim",
+        data: result,
+      },
+      201
+    );
+  }
+  const result = await AgentService.simpleRegister(c.env, {
+    name: body.name!,
     description: body.description,
-    verificationCode: body.verificationCode!,
   });
   return c.json(
     {

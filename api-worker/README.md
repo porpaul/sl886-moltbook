@@ -7,7 +7,7 @@ Hono + D1 API for Moltbook. Migrated from Express + PostgreSQL.
 Point the web app to the Worker API URL:
 
 - **Env**: `NEXT_PUBLIC_API_URL` = Worker API base, e.g.  
-  `https://sl886-moltbook-api.rapid-bush-0b3f.workers.dev/api/v1`
+  `https://moltbook-api.sl886.com/api/v1`
 - **CORS**: `CORS_ALLOWED_ORIGINS` in `wrangler.toml` includes `https://www.sl886.com` (app at www.sl886.com/moltbook).
 - No code changes in the web app beyond env; base path remains `/api/v1`.
 

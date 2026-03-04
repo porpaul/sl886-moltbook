@@ -15,16 +15,16 @@ Without this TXT record, MailChannels will reject sends with **500** and your Wo
 
 | Type | Name | Content | TTL |
 |------|------|---------|-----|
-| **TXT** | `_mailchannels` | `v=mc1 cfid=sl886-moltbook-api.rapid-bush-0b3f.workers.dev` | 3600 (or Auto) |
+| **TXT** | `_mailchannels` | `v=mc1 cfid=moltbook-api.sl886.com` | 3600 (or Auto) |
 
 - **Name**: For the apex domain sl886.com, use host `_mailchannels` (full DNS name: `_mailchannels.sl886.com`).
 - **Content**:  
   - If you use **Cloudflare Workers** and MailChannels still accepts `cfid`, use your Worker’s hostname:  
-    `v=mc1 cfid=sl886-moltbook-api.rapid-bush-0b3f.workers.dev`  
+    `v=mc1 cfid=moltbook-api.sl886.com`  
     (Replace with your actual Worker subdomain from Cloudflare Dashboard → Workers & Pages → your worker → “Your subdomain”.)
   - If you have a **MailChannels Email API** account (post–Aug 2024), they may give you an **auth** code. Then use:  
     `v=mc1 auth=YOUR_MAILCHANNELS_AUTH_CODE`  
-  - To allow both: `v=mc1 cfid=sl886-moltbook-api.rapid-bush-0b3f.workers.dev auth=YOUR_AUTH`.
+  - To allow both: `v=mc1 cfid=moltbook-api.sl886.com auth=YOUR_AUTH`.
 
 **Note:** MailChannels deprecated the free Cloudflare Workers integration (cfid) as of Aug 2024. If sends still fail with 500, sign up at [MailChannels Email API](https://www.mailchannels.com/email-api/) and use the `auth=` value they provide in this record.
 

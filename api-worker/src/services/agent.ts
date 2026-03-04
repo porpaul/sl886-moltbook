@@ -9,6 +9,11 @@ import {
 import { BadRequestError, NotFoundError, ConflictError } from "../lib/errors";
 import { signEmailClaimJwt, verifyEmailClaimJwt } from "../lib/jwt";
 import { sendEmail } from "../lib/email";
+import {
+  getClaimVerificationSubject,
+  getClaimVerificationText,
+  EMAIL_CLAIM_EXPIRY_MINUTES,
+} from "../lib/email-templates";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
@@ -254,6 +259,56 @@ export async function register(
   };
 }
 
+/** Simple register (moltbook.com-style): name + description only, no OTP. Returns api_key, claim_url, verification_code. */
+export async function simpleRegister(
+  env: Env,
+  data: { name: string; description?: string }
+): Promise<{ apiKey: string; claimUrl: string; verificationCode: string }> {
+  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/ai-agent/agents";
+  const tokenPrefix = env.MOLTBOOK_TOKEN_PREFIX ?? "sl886_agent_";
+  const claimPrefix = env.MOLTBOOK_CLAIM_PREFIX ?? "moltbook_claim_";
+
+  const nameTrim = String(data.name || "").trim();
+  if (!nameTrim) throw new BadRequestError("name is required");
+
+  const uniqueName = await generateUniqueAgentName(env, nameTrim);
+  const cleanDescription = String(data.description || "").slice(0, 2000);
+  const apiKey = generateApiKey(tokenPrefix);
+  const apiKeyHash = await sha256Hex(apiKey);
+  const claimToken = generateClaimToken(claimPrefix);
+  const claimTokenHash = await sha256Hex(claimToken);
+  const claimExpiresAt = new Date(Date.now() + CLAIM_TTL_MS).toISOString();
+  const verificationCode = generateVerificationCode();
+  const agentId = crypto.randomUUID();
+
+  await queryOne(
+    env,
+    `INSERT INTO agents (id, name, external_agent_id, display_name, description, api_key_hash, status, is_claimed)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending_claim', 0)`,
+    agentId,
+    uniqueName,
+    uniqueName,
+    nameTrim,
+    cleanDescription,
+    apiKeyHash
+  );
+  await queryOne(
+    env,
+    `INSERT INTO agent_claim_tokens (id, agent_id, token_hash, expected_user_id, expires_at)
+     VALUES (?, ?, ?, 0, ?)`,
+    crypto.randomUUID(),
+    agentId,
+    claimTokenHash,
+    claimExpiresAt
+  );
+
+  return {
+    apiKey,
+    claimUrl: `${baseUrl}/claim/${encodeURIComponent(claimToken)}`,
+    verificationCode,
+  };
+}
+
 export async function findByApiKey(
   env: Env,
   apiKey: string
@@ -418,8 +473,12 @@ export async function startEmailClaim(
   const displayName = (agent as { display_name: string | null } | null)?.display_name ?? params.displayName ?? "your agent";
   await sendEmail(env, {
     to: email,
-    subject: "Claim your AI agent on SL886 Moltbook",
-    text: `Click the link below to claim "${displayName}" on SL886 Moltbook. This link expires in 10 minutes.\n\n${verifyUrl}\n\nIf you didn't request this, you can ignore this email.`,
+    subject: getClaimVerificationSubject(),
+    text: getClaimVerificationText({
+      displayName,
+      verifyUrl,
+      expiryMinutes: EMAIL_CLAIM_EXPIRY_MINUTES,
+    }),
   });
   return { sent: true };
 }
@@ -496,7 +555,8 @@ export async function confirmClaim(
   if (new Date(c.expires_at).getTime() <= Date.now()) {
     throw new BadRequestError("claim token expired");
   }
-  if (Number(c.expected_user_id) !== Number(params.userId)) {
+  const expectedUserId = Number(c.expected_user_id);
+  if (expectedUserId !== 0 && expectedUserId !== Number(params.userId)) {
     throw new ConflictError(
       "claim token does not belong to current SL886 account"
     );

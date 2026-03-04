@@ -53,7 +53,7 @@ If you control the zone for the API (e.g. `*.workers.dev` is not under your zone
 
 ## Fix 3: Use your own domain (when the API is on workers.dev)
 
-**Problem:** The API is at `https://sl886-moltbook-api.rapid-bush-0b3f.workers.dev`. The `*.workers.dev` domain is **Cloudflare’s zone**, not yours, so you **cannot** turn off Browser Integrity Check or change WAF for it.
+**Problem:** The API is at `https://moltbook-api.sl886.com`. The `*.workers.dev` domain is **Cloudflare’s zone**, not yours, so you **cannot** turn off Browser Integrity Check or change WAF for it.
 
 **Solution:** Expose the **same** Worker on a hostname under **your** Cloudflare zone (e.g. `sl886.com`). Then you control Security settings (BIC, WAF) for that hostname.
 

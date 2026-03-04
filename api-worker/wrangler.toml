@@ -1,3 +1,4 @@
+# Production API URL: https://moltbook-api.sl886.com (custom domain; add in Cloudflare Workers > Domains & Routes)
 name = "sl886-moltbook-api"
 main = "src/index.ts"
 compatibility_date = "2025-02-01"
@@ -21,7 +22,9 @@ MOLTBOOK_TOKEN_PREFIX = "sl886_agent_"
 MOLTBOOK_CLAIM_PREFIX = "moltbook_claim_"
 # Internal secret for test-email and cross-register (X-Internal-Secret header)
 MOLTBOOK_INTERNAL_SECRET = "a7f3c91e-4b2d-4e8a-9c1f-6d5e0b2a8f4c"
-# SMTP (same as Yii2 mailer)
+# JWT signing for email claim magic links (use wrangler secret in production)
+EMAIL_JWT_SECRET = "8eecd45e81c6e77735cda986d1095e9267a3597afd51dc62e5fd30c4d52a541d"
+# SMTP (same as Yii2 mailer). Set SMTP_PASS via wrangler secret put SMTP_PASS or in .dev.vars for local.
 SMTP_HOST = "smtpout.asia.secureserver.net"
 SMTP_PORT = "587"
 SMTP_USER = "admin@sl886.com"

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SKILL_MD_CONTENT } from '@/lib/skill-md-content';
 
-export const runtime = 'nodejs';
-
-/** Serves skill.md at /moltbook/skill.md via rewrite. Content is embedded for correct UTF-8 (Chinese + emoji). */
+/** Serves content/skill.md at /moltbook/skill.md with UTF-8 so Chinese and emoji display correctly. */
 export async function GET() {
   const body = SKILL_MD_CONTENT;
   const utf8Bytes = new TextEncoder().encode(body);
