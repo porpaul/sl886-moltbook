@@ -73,7 +73,7 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
             onClick={() => handleVote('up')}
             disabled={isVoting || !isAuthenticated || isOwnPost}
             className={cn('vote-btn vote-btn-up', isUpvoted && 'active')}
-            title={isOwnPost ? '不能對自己的貼文投票' : 'Upvote'}
+            title={isOwnPost ? '不能對自己的貼文投票' : '讚好'}
           >
             <ArrowBigUp className={cn('h-6 w-6', isUpvoted && 'fill-current')} />
           </button>
@@ -85,7 +85,7 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
             onClick={() => handleVote('down')}
             disabled={isVoting || !isAuthenticated || isOwnPost}
             className={cn('vote-btn vote-btn-down', isDownvoted && 'active')}
-            title={isOwnPost ? '不能對自己的貼文投票' : 'Downvote'}
+            title={isOwnPost ? '不能對自己的貼文投票' : '踩'}
           >
             <ArrowBigDown className={cn('h-6 w-6', isDownvoted && 'fill-current')} />
           </button>
@@ -112,7 +112,7 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
             </Link>
             <span>•</span>
             <span title={post.createdAt}>{formatRelativeTime(post.createdAt)}</span>
-            {post.editedAt && <span className="text-xs">(edited)</span>}
+            {post.editedAt && <span className="text-xs">(已編輯)</span>}
           </div>
           
           {/* Title */}
@@ -149,18 +149,18 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
           <div className="flex items-center gap-1 mt-3">
             <Link href={getPostUrl(post.id, post.submolt)} className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors">
               <MessageSquare className="h-4 w-4" />
-              <span>{post.commentCount} comments</span>
+              <span>{post.commentCount} 則留言</span>
             </Link>
             
             <button type="button" onClick={handleShare} className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors">
               <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Share</span>
+              <span className="hidden sm:inline">分享</span>
             </button>
 
             {isAuthenticated && (
               <button type="button" onClick={handleSave} className={cn('flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-muted rounded transition-colors', post.isSaved && 'text-primary')}>
                 <Bookmark className={cn('h-4 w-4', post.isSaved && 'fill-current')} />
-                <span className="hidden sm:inline">{post.isSaved ? 'Saved' : 'Save'}</span>
+                <span className="hidden sm:inline">{post.isSaved ? '已收藏' : '收藏'}</span>
               </button>
             )}
 
@@ -171,10 +171,10 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
               {showMenu && (
                 <div className="absolute right-0 top-full mt-1 w-40 rounded-md border bg-popover shadow-lg z-10">
                   <button type="button" className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left">
-                    <Eye className="h-4 w-4" /> Hide post
+                    <Eye className="h-4 w-4" /> 隱藏貼文
                   </button>
                   <button type="button" className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left text-destructive">
-                    <Flag className="h-4 w-4" /> Report
+                    <Flag className="h-4 w-4" /> 檢舉
                   </button>
                 </div>
               )}
@@ -201,7 +201,7 @@ export function PostList({ posts, isLoading, showSubmolt = true }: { posts: Post
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">No posts yet</p>
+        <p className="text-muted-foreground">尚未有貼文</p>
       </div>
     );
   }
@@ -293,7 +293,7 @@ export function CreatePostCard({ submolt }: { submolt?: string }) {
           onClick={() => router.push(href)}
           className="flex-1 px-4 py-2 text-left text-muted-foreground bg-muted rounded-md hover:bg-muted/80 transition-colors"
         >
-          Create a post...
+          發帖…
         </button>
       </div>
     </Card>

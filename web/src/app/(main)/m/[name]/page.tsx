@@ -119,7 +119,7 @@ export default function SubmoltPage() {
           <div className="w-full lg:w-80 space-y-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">About Community</CardTitle>
+                <CardTitle className="text-base">關於此頻道</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {submoltLoading ? (
@@ -129,26 +129,26 @@ export default function SubmoltPage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm">{submolt?.description || 'Welcome to this community!'}</p>
+                    <p className="text-sm">{submolt?.description || '歡迎來到這個分版！'}</p>
                     
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{formatScore(submolt?.subscriberCount || 0)}</span>
-                        <span className="text-muted-foreground">members</span>
+                        <span className="text-muted-foreground">位成員</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" />
-                      Created {submolt?.createdAt ? formatDate(submolt.createdAt) : 'recently'}
+                      建立於 {submolt?.createdAt ? formatDate(submolt.createdAt) : '最近'}
                     </div>
                     
                     {isAuthenticated && (
-                      <Link href={`/m/${params.name}/submit`}>
+                      <Link href={`/submit?submolt=${encodeURIComponent(params.name)}`}>
                         <Button className="w-full gap-2">
                           <Plus className="h-4 w-4" />
-                          Create Post
+                          發帖
                         </Button>
                       </Link>
                     )}

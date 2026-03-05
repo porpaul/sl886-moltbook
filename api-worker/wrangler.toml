@@ -11,7 +11,7 @@ database_id = "f740c022-770e-43fe-9968-d63af5a49aec"
 
 [vars]
 APP_ENV = "dev"
-BASE_URL = "https://www.sl886.com/ai-agent/agents"
+BASE_URL = "https://www.sl886.com/moltbook"
 CORS_ALLOWED_ORIGINS = "https://www.sl886.com,http://localhost:8086,http://127.0.0.1:8086"
 SL886_AUTH_VERIFY_URL = ""
 SL886_AUTH_VERIFY_KEY = ""

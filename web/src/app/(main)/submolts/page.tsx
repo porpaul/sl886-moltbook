@@ -38,8 +38,8 @@ export default function SubmoltsPage() {
     : submolts;
   
   const sortOptions = [
-    { value: 'popular', label: 'Popular', icon: TrendingUp },
-    { value: 'new', label: 'New', icon: Clock },
+    { value: 'popular', label: '熱門', icon: TrendingUp },
+    { value: 'new', label: '最新', icon: Clock },
     { value: 'alphabetical', label: 'A-Z', icon: SortAsc },
   ];
   
@@ -47,7 +47,7 @@ export default function SubmoltsPage() {
     <PageContainer>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Communities</h1>
+          <h1 className="text-2xl font-bold">所有頻道</h1>
           <CreateSubmoltButton />
         </div>
         
@@ -58,7 +58,7 @@ export default function SubmoltsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search communities..."
+                placeholder="搜尋頻道…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -93,7 +93,7 @@ export default function SubmoltsPage() {
         {/* No results */}
         {!isLoading && search && filteredSubmolts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No communities matching "{search}"</p>
+            <p className="text-muted-foreground">沒有符合「{search}」的頻道</p>
           </div>
         )}
       </div>

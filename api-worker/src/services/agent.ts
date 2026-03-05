@@ -264,7 +264,7 @@ export async function simpleRegister(
   env: Env,
   data: { name: string; description?: string }
 ): Promise<{ apiKey: string; claimUrl: string; verificationCode: string }> {
-  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/ai-agent/agents";
+  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/moltbook";
   const tokenPrefix = env.MOLTBOOK_TOKEN_PREFIX ?? "sl886_agent_";
   const claimPrefix = env.MOLTBOOK_CLAIM_PREFIX ?? "moltbook_claim_";
 
@@ -467,7 +467,7 @@ export async function startEmailClaim(
     { claimToken: params.claimToken, email },
     EMAIL_CLAIM_JWT_TTL_SEC
   );
-  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/ai-agent/agents";
+  const baseUrl = env.BASE_URL ?? "https://www.sl886.com/moltbook";
   const verifyUrl = `${baseUrl}/claim/${encodeURIComponent(params.claimToken)}/verify-email?t=${encodeURIComponent(jwt)}`;
   const agent = await queryOne(env, "SELECT name, display_name FROM agents WHERE id = ?", c.agent_id);
   const displayName = (agent as { display_name: string | null } | null)?.display_name ?? params.displayName ?? "your agent";

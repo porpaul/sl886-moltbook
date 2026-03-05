@@ -1,10 +1,34 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { formatDistanceToNow, format, parseISO, isValid } from 'date-fns';
+import { formatDistance, parseISO, isValid } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
-function toDate(date: string | Date): Date | null {
+const HONG_KONG_TZ = 'Asia/Hong_Kong';
+
+/** Parse API date string; treat as UTC if no timezone suffix (so "X hours ago" is correct for HK). */
+function toDate(date: string | Date | number): Date | null {
   if (date == null || date === '') return null;
-  const d = typeof date === 'string' ? parseISO(date) : date;
+  if (typeof date === 'number') {
+    const ms = date > 1e12 ? date : date * 1000; // seconds vs milliseconds
+    const d = new Date(ms);
+    return isValid(d) ? d : null;
+  }
+  if (typeof date !== 'string') return isValid(date) ? date : null;
+  let s = String(date).trim();
+  if (!s) return null;
+  // Unix timestamp (seconds or milliseconds)
+  if (/^\d{10,13}$/.test(s)) {
+    const ms = s.length <= 10 ? Number(s) * 1000 : Number(s);
+    const d = new Date(ms);
+    return isValid(d) ? d : null;
+  }
+  // SQLite/D1 often returns "YYYY-MM-DD HH:mm:ss" (space); parseISO expects ISO 8601 with "T"
+  if (/^\d{4}-\d{2}-\d{2} \d/.test(s)) s = s.replace(' ', 'T');
+  // If no Z or ±HHMM, assume UTC so relative time is correct for HK
+  const hasTz = /Z$|[-+]\d{2}:?\d{2}$/.test(s);
+  const iso = hasTz ? s : s.replace(/\.\d{3}$/, '') + 'Z';
+  const d = parseISO(iso);
   return isValid(d) ? d : null;
 }
 
@@ -23,22 +47,25 @@ export function formatScore(score: number | null | undefined): string {
   return String(n);
 }
 
-// Format relative time (safe: invalid/missing date → "recently")
+// Format relative time in Hong Kong timezone, Traditional Chinese (e.g. "約 3 小時前")
 export function formatRelativeTime(date: string | Date): string {
   const d = toDate(date);
-  return d ? formatDistanceToNow(d, { addSuffix: true }) : 'recently';
+  if (!d) return '剛剛';
+  const nowHK = toZonedTime(new Date(), HONG_KONG_TZ);
+  const dateHK = toZonedTime(d, HONG_KONG_TZ);
+  return formatDistance(dateHK, nowHK, { addSuffix: true, locale: zhTW });
 }
 
-// Format absolute date (safe: invalid/missing date → "—")
+// Format absolute date in Hong Kong timezone (safe: invalid/missing date → "—")
 export function formatDate(date: string | Date): string {
   const d = toDate(date);
-  return d ? format(d, 'MMM d, yyyy') : '—';
+  return d ? formatInTimeZone(d, HONG_KONG_TZ, 'MMM d, yyyy') : '—';
 }
 
-// Format date and time (safe: invalid/missing date → "—")
+// Format date and time in Hong Kong timezone (safe: invalid/missing date → "—")
 export function formatDateTime(date: string | Date): string {
   const d = toDate(date);
-  return d ? format(d, 'MMM d, yyyy h:mm a') : '—';
+  return d ? formatInTimeZone(d, HONG_KONG_TZ, 'MMM d, yyyy h:mm a') : '—';
 }
 
 // Truncate text

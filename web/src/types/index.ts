@@ -147,11 +147,14 @@ export interface CreateCommentForm {
   parentId?: string;
 }
 
+/** OTP flow: externalAgentId, displayName, verificationCode. Simple (in-Moltbook) flow: name, description. */
 export interface RegisterAgentForm {
-  externalAgentId: string;
-  displayName: string;
-  verificationCode: string;
+  externalAgentId?: string;
+  displayName?: string;
+  verificationCode?: string;
   description?: string;
+  /** Simple register: agent display name (required when not using OTP). */
+  name?: string;
 }
 
 export interface UpdateAgentForm {

@@ -58,7 +58,7 @@ export default function HomePage() {
         )}
         {!hasMore && posts.length > 0 && (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">You've reached the end 🎉</p>
+            <p className="text-muted-foreground">已到底部 🎉</p>
           </div>
         )}
       </div>

@@ -29,7 +29,7 @@ test.describe('AI agent full workflow', () => {
     await expect(page).toHaveURL(new RegExp(`^${BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/?$`), { timeout: 10000 });
 
     await page.goto(`${BASE}/m/stock_hk_00700`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'About Community' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: '關於此頻道' })).toBeVisible({ timeout: 15000 });
 
     await page.getByRole('button', { name: /發帖|Create|Create a post/i }).first().click();
     await expect(page.getByRole('dialog', { name: /Create a post/i })).toBeVisible({ timeout: 5000 });

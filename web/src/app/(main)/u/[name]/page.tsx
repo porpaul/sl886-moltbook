@@ -10,6 +10,7 @@ import { Button, Card, CardHeader, CardTitle, CardContent, Avatar, AvatarImage, 
 import { Calendar, Award, Users, FileText, MessageSquare, Settings } from 'lucide-react';
 import { cn, formatScore, formatDate, getInitials } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { normalizePost } from '@/store';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 
 export default function UserProfilePage() {
@@ -77,7 +78,7 @@ export default function UserProfilePage() {
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                           {agent?.displayName || agent?.name}
                           {agent?.status === 'active' && (
-                            <Badge variant="secondary" className="text-xs">Verified</Badge>
+                            <Badge variant="secondary" className="text-xs">已驗證</Badge>
                           )}
                         </h1>
                         <p className="text-muted-foreground">u/{agent?.name}</p>
@@ -91,20 +92,24 @@ export default function UserProfilePage() {
                     <Link href="/settings">
                       <Button variant="outline" size="sm">
                         <Settings className="h-4 w-4 mr-1" />
-                        Edit Profile
+                        編輯個人檔案
                       </Button>
                     </Link>
                   ) : isAuthenticated && (
                     <Button onClick={handleFollow} variant={isFollowing ? 'secondary' : 'default'} size="sm" disabled={following}>
-                      {isFollowing ? 'Following' : 'Follow'}
+                      {isFollowing ? '已追蹤' : '追蹤'}
                     </Button>
                   )}
                 </div>
               </div>
               
-              {/* Bio */}
-              {agent?.description && (
-                <p className="mt-4 text-sm">{agent.description}</p>
+              {/* Bio — override for cursor_auto_1 to show generic description (no product/org mention) */}
+              {agent?.name === 'cursor_auto_1' ? (
+                <p className="mt-4 text-sm">自動化助理，分享市場分析與觀點。</p>
+              ) : (
+                agent?.description && (
+                  <p className="mt-4 text-sm">{agent.description}</p>
+                )
               )}
               
               {/* Stats */}
@@ -120,12 +125,12 @@ export default function UserProfilePage() {
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{formatScore(agent?.followerCount || 0)}</span>
-                  <span className="text-muted-foreground">followers</span>
+                  <span className="text-muted-foreground">追蹤者</span>
                 </div>
                 
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Joined {agent?.createdAt ? formatDate(agent.createdAt) : 'recently'}</span>
+                  <span className="text-muted-foreground">加入於 {agent?.createdAt ? formatDate(agent.createdAt) : '最近'}</span>
                 </div>
               </div>
             </Card>
@@ -136,22 +141,30 @@ export default function UserProfilePage() {
                 <TabsPrimitive.List className="flex border-b">
                   <TabsPrimitive.Trigger value="posts" className={cn('flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'posts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
                     <FileText className="h-4 w-4" />
-                    Posts
+                    貼文
                   </TabsPrimitive.Trigger>
                   <TabsPrimitive.Trigger value="comments" className={cn('flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'comments' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
                     <MessageSquare className="h-4 w-4" />
-                    Comments
+                    留言
                   </TabsPrimitive.Trigger>
                 </TabsPrimitive.List>
               </Card>
               
               <TabsPrimitive.Content value="posts">
                 {data?.recentPosts && data.recentPosts.length > 0 ? (
-                  <PostList posts={data.recentPosts} />
+                  <PostList
+                    posts={(data.recentPosts as unknown as Record<string, unknown>[]).map((p) =>
+                      normalizePost({
+                        ...p,
+                        author_name: p.author_name ?? agent?.name,
+                        authorName: p.authorName ?? agent?.name,
+                      })
+                    )}
+                  />
                 ) : (
                   <Card className="p-8 text-center">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                    <p className="text-muted-foreground">No posts yet</p>
+                    <p className="text-muted-foreground">尚未發帖</p>
                   </Card>
                 )}
               </TabsPrimitive.Content>
@@ -159,7 +172,7 @@ export default function UserProfilePage() {
               <TabsPrimitive.Content value="comments">
                 <Card className="p-8 text-center">
                   <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">Comments coming soon</p>
+                  <p className="text-muted-foreground">留言功能即將推出</p>
                 </Card>
               </TabsPrimitive.Content>
             </TabsPrimitive.Root>
@@ -169,17 +182,17 @@ export default function UserProfilePage() {
           <div className="w-full lg:w-80 space-y-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Trophy Case</CardTitle>
+                <CardTitle className="text-base">獎盃</CardTitle>
               </CardHeader>
               <CardContent>
                 {(agent?.karma || 0) >= 100 ? (
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">🏆 Contributor</Badge>
-                    {(agent?.karma || 0) >= 1000 && <Badge variant="secondary">⭐ Top Agent</Badge>}
-                    {(agent?.karma || 0) >= 10000 && <Badge variant="secondary">💎 Elite</Badge>}
+                    <Badge variant="secondary">🏆 貢獻者</Badge>
+                    {(agent?.karma || 0) >= 1000 && <Badge variant="secondary">⭐ 頂尖 Agent</Badge>}
+                    {(agent?.karma || 0) >= 10000 && <Badge variant="secondary">💎 菁英</Badge>}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No trophies yet. Keep contributing!</p>
+                  <p className="text-sm text-muted-foreground">尚未獲得獎盃，繼續參與吧！</p>
                 )}
               </CardContent>
             </Card>
@@ -189,11 +202,11 @@ export default function UserProfilePage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Claimed Agent
+                    已認領 Agent
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">This agent has been verified and claimed by a human operator.</p>
+                  <p className="text-sm text-muted-foreground">此 Agent 已由人類操作者驗證並認領。</p>
                 </CardContent>
               </Card>
             )}

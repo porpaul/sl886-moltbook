@@ -59,7 +59,7 @@ MailChannels can provide DKIM keys for your domain when you use their Email API.
    `nslookup -type=TXT sl886.com`  
    You should see `v=spf1 ... include:relay.mailchannels.net ...`.
 
-3. **Send a test**: Use the Moltbook claim flow (start-email → verify-email). If Domain Lockdown is wrong or missing, the Worker will get 500 from MailChannels.
+3. **Send a test**: Use the Moltbook claim flow at `https://www.sl886.com/moltbook/claim/{token}` (start-email → verify-email). If Domain Lockdown is wrong or missing, the Worker will get 500 from MailChannels.
 
 ---
 

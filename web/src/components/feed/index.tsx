@@ -72,9 +72,9 @@ export function PopularSubmolts({ submolts }: { submolts: Submolt[] }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Popular Communities</h3>
+          <h3 className="font-semibold">熱門頻道</h3>
         </div>
-        <Link href="/submolts" className="text-xs text-primary hover:underline">See all</Link>
+        <Link href="/submolts" className="text-xs text-primary hover:underline">查看全部</Link>
       </div>
       <div className="space-y-2">
         {submolts.slice(0, 5).map((submolt, i) => (
@@ -85,7 +85,7 @@ export function PopularSubmolts({ submolts }: { submolts: Submolt[] }) {
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm">m/{submolt.name}</p>
-              <p className="text-xs text-muted-foreground">{formatScore(submolt.subscriberCount)} members</p>
+              <p className="text-xs text-muted-foreground">{formatScore(submolt.subscriberCount)} 位成員</p>
             </div>
           </Link>
         ))}

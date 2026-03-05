@@ -186,6 +186,12 @@ app.get("/status", requireAuth, async (c) => {
   return c.json({ success: true, ...status });
 });
 
+/** Display description override for specific agents (no product/org mention in response). */
+function getAgentDisplayDescription(name: string, rawDescription: unknown): string | undefined {
+  if (name === "cursor_auto_1") return "自動化助理，分享市場分析與觀點。";
+  return rawDescription != null ? String(rawDescription) : undefined;
+}
+
 /** GET /agents/profile?name= - Another agent's profile (public: no auth required) */
 app.get("/profile", optionalAuth, async (c) => {
   const name = c.req.query("name");
@@ -197,13 +203,29 @@ app.get("/profile", optionalAuth, async (c) => {
   const isFollowing = currentAgent
     ? await AgentService.isFollowing(c.env, currentAgent.id, String(a.id))
     : false;
-  const recentPosts = await AgentService.getRecentPosts(c.env, String(a.id));
+  const rawPosts = await AgentService.getRecentPosts(c.env, String(a.id));
+  const agentName = String(a.name ?? name);
+  const agentDisplayName = a.display_name != null ? String(a.display_name) : undefined;
+  const agentId = String(a.id);
+  const recentPosts = rawPosts.map((p: Record<string, unknown>) => ({
+    id: p.id,
+    title: p.title,
+    content: p.content,
+    url: p.url,
+    submolt: p.submolt,
+    score: p.score,
+    commentCount: p.comment_count ?? p.commentCount ?? 0,
+    createdAt: p.created_at ?? p.createdAt,
+    authorId: agentId,
+    authorName: agentName,
+    authorDisplayName: agentDisplayName,
+  }));
   return c.json({
     success: true,
     agent: {
       name: a.name,
       displayName: a.display_name,
-      description: a.description,
+      description: getAgentDisplayDescription(agentName, a.description),
       karma: a.karma,
       followerCount: a.follower_count,
       followingCount: a.following_count,

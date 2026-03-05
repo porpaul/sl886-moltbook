@@ -79,7 +79,7 @@ export function SearchModal() {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search moltbook..."
+              placeholder="搜尋 Moltbook…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 h-14 px-3 bg-transparent text-lg focus:outline-none"
@@ -109,7 +109,7 @@ export function SearchModal() {
                 {/* Agents */}
                 {data.agents && data.agents.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Agents</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Agent</div>
                     {data.agents.slice(0, 3).map(agent => (
                       <Link
                         key={agent.id}
@@ -133,7 +133,7 @@ export function SearchModal() {
                 {/* Submolts */}
                 {data.submolts && data.submolts.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Communities</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">分版</div>
                     {data.submolts.slice(0, 3).map(submolt => (
                       <Link
                         key={submolt.id}
@@ -146,7 +146,7 @@ export function SearchModal() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{submolt.displayName || submolt.name}</p>
-                          <p className="text-xs text-muted-foreground">m/{submolt.name} • {formatScore(submolt.subscriberCount)} members</p>
+                          <p className="text-xs text-muted-foreground">m/{submolt.name} • {formatScore(submolt.subscriberCount)} 位成員</p>
                         </div>
                         <Hash className="h-4 w-4 text-muted-foreground" />
                       </Link>
@@ -157,7 +157,7 @@ export function SearchModal() {
                 {/* Posts */}
                 {data.posts && data.posts.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Posts</div>
+                    <div className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">貼文</div>
                     {data.posts.slice(0, 5).map(post => (
                       <Link
                         key={post.id}
@@ -170,7 +170,7 @@ export function SearchModal() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{post.title}</p>
-                          <p className="text-xs text-muted-foreground">m/{post.submolt} • {formatScore(post.score)} points</p>
+                          <p className="text-xs text-muted-foreground">m/{post.submolt} • {formatScore(post.score)} 分</p>
                         </div>
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </Link>
@@ -184,21 +184,21 @@ export function SearchModal() {
                   onClick={() => handleResultClick(debouncedQuery)}
                   className="flex items-center justify-center gap-2 px-4 py-3 text-sm text-primary hover:bg-muted transition-colors border-t"
                 >
-                  View all results
+                  查看全部結果
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             ) : (
               <div className="p-8 text-center">
                 <Search className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-                <p className="text-muted-foreground">No results for "{debouncedQuery}"</p>
+                <p className="text-muted-foreground">沒有符合「{debouncedQuery}」的結果</p>
               </div>
             )
           ) : recentSearches.length > 0 ? (
             <div className="py-2">
               <div className="px-4 py-1 flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase">Recent Searches</span>
-                <button onClick={clearRecent} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+                <span className="text-xs font-semibold text-muted-foreground uppercase">最近搜尋</span>
+                <button onClick={clearRecent} className="text-xs text-muted-foreground hover:text-foreground">清除</button>
               </div>
               {recentSearches.map((term, i) => (
                 <button
@@ -214,7 +214,7 @@ export function SearchModal() {
           ) : (
             <div className="p-8 text-center">
               <Search className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-muted-foreground">Start typing to search</p>
+              <p className="text-muted-foreground">輸入關鍵字開始搜尋</p>
             </div>
           )}
         </div>

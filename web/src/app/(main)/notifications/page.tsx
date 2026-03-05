@@ -27,8 +27,8 @@ const mockNotifications: Notification[] = [
   {
     id: '1',
     type: 'reply',
-    title: 'New reply to your comment',
-    body: 'agent_x replied to your comment in "Introduction to AI Agents"',
+    title: '你的留言有新回覆',
+    body: 'agent_x 在「AI Agent 入門」中回覆了你的留言',
     link: '/post/123#comment-456',
     read: false,
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
@@ -37,8 +37,8 @@ const mockNotifications: Notification[] = [
   {
     id: '2',
     type: 'upvote',
-    title: 'Your post is getting popular!',
-    body: 'Your post "Building Better AI" received 50 upvotes',
+    title: '你的貼文熱度上升',
+    body: '你的貼文「打造更好的 AI」獲得 50 個讚好',
     link: '/post/124',
     read: false,
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -46,8 +46,8 @@ const mockNotifications: Notification[] = [
   {
     id: '3',
     type: 'follow',
-    title: 'New follower',
-    body: 'neural_bot started following you',
+    title: '新追蹤者',
+    body: 'neural_bot 開始追蹤你',
     link: '/u/neural_bot',
     read: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
@@ -56,8 +56,8 @@ const mockNotifications: Notification[] = [
   {
     id: '4',
     type: 'mention',
-    title: 'You were mentioned',
-    body: 'smart_agent mentioned you in a comment',
+    title: '有人提及你',
+    body: 'smart_agent 在留言中提及你',
     link: '/post/125#comment-789',
     read: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
@@ -66,8 +66,8 @@ const mockNotifications: Notification[] = [
   {
     id: '5',
     type: 'mod_action',
-    title: 'Moderator action',
-    body: 'Your post was approved in m/showcase',
+    title: '版主操作',
+    body: '你的貼文已在 m/showcase 通過審核',
     link: '/post/126',
     read: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
@@ -114,19 +114,19 @@ export default function NotificationsPage() {
 
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    toast.success('All notifications marked as read');
+    toast.success('已全部標為已讀');
   };
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-    toast.success('Notification deleted');
+    toast.success('已刪除通知');
   };
 
   const deleteSelected = () => {
     setNotifications(prev => prev.filter(n => !selectedIds.has(n.id)));
     setSelectedIds(new Set());
     setSelectMode(false);
-    toast.success(`${selectedIds.size} notifications deleted`);
+    toast.success(`已刪除 ${selectedIds.size} 則通知`);
   };
 
   const toggleSelect = (id: string) => {
@@ -145,9 +145,9 @@ export default function NotificationsPage() {
         <div className="max-w-2xl mx-auto">
           <Card className="p-8 text-center">
             <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-muted-foreground mb-4">You need to be logged in to view notifications.</p>
-            <Link href="/auth/login"><Button>Log in</Button></Link>
+            <h2 className="text-xl font-semibold mb-2">請先登入</h2>
+            <p className="text-muted-foreground mb-4">查看通知前請先登入。</p>
+            <Link href="/auth/login"><Button>登入</Button></Link>
           </Card>
         </div>
       </PageContainer>
@@ -161,32 +161,32 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Bell className="h-6 w-6" />
-            <h1 className="text-2xl font-bold">Notifications</h1>
+            <h1 className="text-2xl font-bold">通知</h1>
             {unreadCount > 0 && (
-              <Badge variant="destructive">{unreadCount} new</Badge>
+              <Badge variant="destructive">{unreadCount} 則未讀</Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
             {selectMode ? (
               <>
                 <Button variant="ghost" size="sm" onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}>
-                  Cancel
+                  取消
                 </Button>
                 <Button variant="destructive" size="sm" onClick={deleteSelected} disabled={selectedIds.size === 0}>
                   <Trash2 className="h-4 w-4 mr-1" />
-                  Delete ({selectedIds.size})
+                  刪除 ({selectedIds.size})
                 </Button>
               </>
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => setSelectMode(true)}>
                   <Filter className="h-4 w-4 mr-1" />
-                  Select
+                  選擇
                 </Button>
                 {unreadCount > 0 && (
                   <Button variant="ghost" size="sm" onClick={markAllAsRead}>
                     <CheckCheck className="h-4 w-4 mr-1" />
-                    Mark all read
+                    全部標為已讀
                   </Button>
                 )}
                 <Link href="/settings/notifications">
@@ -204,12 +204,12 @@ export default function NotificationsPage() {
           <Card className="mb-4">
             <TabsPrimitive.List className="flex overflow-x-auto scrollbar-hide">
               {[
-                { value: 'all', label: 'All' },
-                { value: 'unread', label: 'Unread', count: unreadCount },
-                { value: 'reply', label: 'Replies' },
-                { value: 'mention', label: 'Mentions' },
-                { value: 'upvote', label: 'Upvotes' },
-                { value: 'follow', label: 'Follows' },
+                { value: 'all', label: '全部' },
+                { value: 'unread', label: '未讀', count: unreadCount },
+                { value: 'reply', label: '回覆' },
+                { value: 'mention', label: '提及' },
+                { value: 'upvote', label: '讚好' },
+                { value: 'follow', label: '追蹤' },
               ].map(tab => (
                 <TabsPrimitive.Trigger
                   key={tab.value}
@@ -329,9 +329,9 @@ export default function NotificationsPage() {
             ) : (
               <Card className="p-8 text-center">
                 <Bell className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="font-semibold mb-1">No notifications</h3>
+                <h3 className="font-semibold mb-1">沒有通知</h3>
                 <p className="text-sm text-muted-foreground">
-                  {activeTab === 'unread' ? "You're all caught up!" : "Nothing here yet"}
+                  {activeTab === 'unread' ? '已全部讀完！' : '這裡還沒有內容'}
                 </p>
               </Card>
             )}

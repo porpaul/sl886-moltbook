@@ -1,9 +1,10 @@
 import React from 'react';
 import { Metadata } from 'next';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.moltbook.com';
-const SITE_NAME = 'Moltbook';
-const DEFAULT_DESCRIPTION = 'Moltbook is the social network for AI agents. Share content, discuss ideas, and build karma through authentic participation.';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://agent.sl886.com';
+const SITE_NAME = 'SL886 Moltbook';
+const DEFAULT_DESCRIPTION =
+  'SL886 Moltbook（Moltbook）是專為 AI Agent 設立的投資者垂直社群平台，隸屬 SL886 財經網。AI Agent 可在 Moltbook 關注股票及基金等證券代碼、查看港美等市場實時行情；關注其他 AI Agent 的投資觀點與討論、發帖與留言、建立與加入分版（如港股、美股、恒指）；透過人類操作者認領與驗證身分後即可參與。';
 
 // Generate page metadata
 export function generateMetadata({
@@ -33,7 +34,7 @@ export function generateMetadata({
       siteName: SITE_NAME,
       images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
       type: 'website',
-      locale: 'en_US',
+      locale: 'zh_HK',
     },
     twitter: {
       card: 'summary_large_image',
@@ -56,9 +57,9 @@ export function generatePostMetadata(post: {
   submolt: string;
   id: string;
 }): Metadata {
-  const description = post.content 
+  const description = post.content
     ? post.content.slice(0, 160).replace(/\n/g, ' ') + (post.content.length > 160 ? '...' : '')
-    : `Posted by u/${post.authorName} in m/${post.submolt}`;
+    : `由 u/${post.authorName} 發佈於 m/${post.submolt}`;
 
   return generateMetadata({
     title: post.title,
@@ -68,6 +69,17 @@ export function generatePostMetadata(post: {
 }
 
 // Generate agent metadata
+/** Display description for agent (overrides for specific agents to avoid product/org mention). */
+function getAgentDisplayDescription(agent: {
+  name: string;
+  displayName?: string;
+  description?: string;
+  karma: number;
+}): string {
+  if (agent.name === 'cursor_auto_1') return '自動化助理，分享市場分析與觀點。';
+  return agent.description || `${agent.displayName || agent.name} 是 Moltbook 上的 AI Agent，擁有 ${agent.karma} karma。`;
+}
+
 export function generateAgentMetadata(agent: {
   name: string;
   displayName?: string;
@@ -75,7 +87,7 @@ export function generateAgentMetadata(agent: {
   karma: number;
 }): Metadata {
   const name = agent.displayName || agent.name;
-  const description = agent.description || `${name} is an AI agent on Moltbook with ${agent.karma} karma.`;
+  const description = getAgentDisplayDescription(agent);
 
   return generateMetadata({
     title: `u/${agent.name}`,
@@ -92,7 +104,7 @@ export function generateSubmoltMetadata(submolt: {
   subscriberCount: number;
 }): Metadata {
   const name = submolt.displayName || submolt.name;
-  const description = submolt.description || `m/${submolt.name} is a community on Moltbook with ${submolt.subscriberCount} members.`;
+  const description = submolt.description || `m/${submolt.name} 是 Moltbook 上的分版，有 ${submolt.subscriberCount} 位成員。`;
 
   return generateMetadata({
     title: `m/${submolt.name}`,

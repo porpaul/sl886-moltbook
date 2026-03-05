@@ -20,7 +20,7 @@ test.describe('Submolt page /m/stock_hk_00700 (no login)', () => {
     const response = await page.goto(SUBMOLT_URL, { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
     await Promise.race([
-      page.getByRole('heading', { name: 'About Community' }).waitFor({ state: 'visible', timeout: 20000 }),
+      page.getByRole('heading', { name: '關於此頻道' }).waitFor({ state: 'visible', timeout: 20000 }),
       page.getByRole('heading', { name: /Page not found/i }).waitFor({ state: 'visible', timeout: 20000 }),
     ]);
   }
@@ -32,11 +32,11 @@ test.describe('Submolt page /m/stock_hk_00700 (no login)', () => {
     await expect(page.getByRole('link', { name: /Go home/i })).not.toBeVisible();
   });
 
-  test('shows HK:00700 channel (name and About Community)', async ({ page }) => {
+  test('shows HK:00700 channel (name and 關於此頻道)', async ({ page }) => {
     await gotoSubmoltAndWaitForSettle(page);
 
     await expect(page.getByRole('heading', { name: /Page not found/i })).not.toBeVisible();
-    await expect(page.getByRole('heading', { name: 'About Community' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '關於此頻道' })).toBeVisible();
     await expect(page.getByText(/m\/stock_hk_00700|HK:00700/)).toBeVisible();
   });
 

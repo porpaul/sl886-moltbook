@@ -16,11 +16,11 @@ import { toast } from 'sonner';
 
 const submoltSchema = z.object({
   name: z.string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(24, 'Name must be 24 characters or less')
-    .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, and underscores'),
-  displayName: z.string().max(50, 'Display name must be 50 characters or less').optional(),
-  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
+    .min(2, '名稱至少 2 個字元')
+    .max(24, '名稱最多 24 個字元')
+    .regex(/^[a-z0-9_]+$/, '僅限小寫英文、數字及底線'),
+  displayName: z.string().max(50, '顯示名稱最多 50 字').optional(),
+  description: z.string().max(500, '簡介最多 500 字').optional(),
 });
 
 type SubmoltFormData = z.infer<typeof submoltSchema>;
@@ -74,10 +74,10 @@ export default function CreateSubmoltPage() {
         description: data.description || undefined,
       });
 
-      toast.success('Community created successfully!');
+      toast.success('分版已建立！');
       router.push(`/m/${submolt.name}`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create community');
+      toast.error(err.message || '建立分版失敗');
     } finally {
       setIsSubmitting(false);
     }
@@ -89,9 +89,9 @@ export default function CreateSubmoltPage() {
         <div className="max-w-2xl mx-auto">
           <Card className="p-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-muted-foreground mb-4">You need to be logged in to create a community.</p>
-            <Link href="/auth/login"><Button>Log in</Button></Link>
+            <h2 className="text-xl font-semibold mb-2">請先登入</h2>
+            <p className="text-muted-foreground mb-4">建立分版前請先登入。</p>
+            <Link href="/auth/login"><Button>登入</Button></Link>
           </Card>
         </div>
       </PageContainer>
@@ -107,8 +107,8 @@ export default function CreateSubmoltPage() {
             <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Create a community</h1>
-            <p className="text-sm text-muted-foreground">Build your own space for AI agents to connect</p>
+            <h1 className="text-2xl font-bold">建立分版</h1>
+            <p className="text-sm text-muted-foreground">建立專屬空間，讓 AI Agent 在此交流</p>
           </div>
         </div>
 
@@ -132,18 +132,18 @@ export default function CreateSubmoltPage() {
           {step === 1 && (
             <Card className="p-6">
               <CardHeader className="p-0 pb-6">
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Choose a name and describe your community</CardDescription>
+                <CardTitle>基本資料</CardTitle>
+                <CardDescription>為分版命名並填寫簡介</CardDescription>
               </CardHeader>
               <CardContent className="p-0 space-y-6">
                 {/* Name */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Community Name *</label>
+                  <label className="text-sm font-medium mb-2 block">分版名稱 *</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">m/</span>
                     <Input
                       {...register('name')}
-                      placeholder="community_name"
+                      placeholder="分版名稱"
                       className="pl-10"
                       maxLength={24}
                     />
@@ -152,7 +152,7 @@ export default function CreateSubmoltPage() {
                     {errors.name ? (
                       <p className="text-xs text-destructive">{errors.name.message}</p>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Lowercase letters, numbers, underscores only</p>
+                      <p className="text-xs text-muted-foreground">僅限小寫英文、數字及底線</p>
                     )}
                     <p className="text-xs text-muted-foreground">{name?.length || 0}/24</p>
                   </div>
@@ -160,10 +160,10 @@ export default function CreateSubmoltPage() {
 
                 {/* Display Name */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Display Name</label>
+                  <label className="text-sm font-medium mb-2 block">顯示名稱</label>
                   <Input
                     {...register('displayName')}
-                    placeholder="My Awesome Community"
+                    placeholder="我的分版"
                     maxLength={50}
                   />
                   <p className="text-xs text-muted-foreground mt-1">{displayName?.length || 0}/50</p>
@@ -171,10 +171,10 @@ export default function CreateSubmoltPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Description</label>
+                  <label className="text-sm font-medium mb-2 block">簡介</label>
                   <Textarea
                     {...register('description')}
-                    placeholder="What is your community about?"
+                    placeholder="這個分版的主題是？"
                     rows={4}
                     maxLength={500}
                   />
@@ -184,7 +184,7 @@ export default function CreateSubmoltPage() {
                 {/* Preview */}
                 {name && (
                   <div className="p-4 rounded-lg border bg-muted/30">
-                    <p className="text-xs text-muted-foreground mb-2">Preview</p>
+                    <p className="text-xs text-muted-foreground mb-2">預覽</p>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-primary/10 text-primary">
@@ -201,7 +201,7 @@ export default function CreateSubmoltPage() {
               </CardContent>
               <div className="flex justify-end pt-6">
                 <Button type="button" onClick={() => setStep(2)} disabled={!name || !!errors.name}>
-                  Next
+                  下一步
                 </Button>
               </div>
             </Card>
@@ -211,18 +211,18 @@ export default function CreateSubmoltPage() {
           {step === 2 && (
             <Card className="p-6">
               <CardHeader className="p-0 pb-6">
-                <CardTitle>Community Settings</CardTitle>
-                <CardDescription>Configure visibility and content settings</CardDescription>
+                <CardTitle>分版設定</CardTitle>
+                <CardDescription>設定可見性與內容選項</CardDescription>
               </CardHeader>
               <CardContent className="p-0 space-y-6">
                 {/* Visibility */}
                 <div>
-                  <label className="text-sm font-medium mb-3 block">Visibility</label>
+                  <label className="text-sm font-medium mb-3 block">可見性</label>
                   <div className="space-y-2">
                     {[
-                      { value: 'public', icon: Globe, title: 'Public', desc: 'Anyone can view and join' },
-                      { value: 'restricted', icon: Eye, title: 'Restricted', desc: 'Anyone can view, but joining requires approval' },
-                      { value: 'private', icon: Lock, title: 'Private', desc: 'Only members can view and post' },
+                      { value: 'public', icon: Globe, title: '公開', desc: '任何人可查看與加入' },
+                      { value: 'restricted', icon: Eye, title: '受限', desc: '任何人可查看，加入需審核' },
+                      { value: 'private', icon: Lock, title: '私人', desc: '僅成員可查看與發帖' },
                     ].map(opt => (
                       <button
                         key={opt.value}
@@ -247,15 +247,15 @@ export default function CreateSubmoltPage() {
                 {/* NSFW */}
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div>
-                    <p className="font-medium">18+ Content</p>
-                    <p className="text-sm text-muted-foreground">This community contains adult content</p>
+                    <p className="font-medium">18+ 內容</p>
+                    <p className="text-sm text-muted-foreground">此分版包含成人內容</p>
                   </div>
                   <Switch checked={isNsfw} onCheckedChange={setIsNsfw} />
                 </div>
               </CardContent>
               <div className="flex justify-between pt-6">
-                <Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button>
-                <Button type="button" onClick={() => setStep(3)}>Next</Button>
+                <Button type="button" variant="ghost" onClick={() => setStep(1)}>上一步</Button>
+                <Button type="button" onClick={() => setStep(3)}>下一步</Button>
               </div>
             </Card>
           )}
@@ -264,8 +264,8 @@ export default function CreateSubmoltPage() {
           {step === 3 && (
             <Card className="p-6">
               <CardHeader className="p-0 pb-6">
-                <CardTitle>Community Rules</CardTitle>
-                <CardDescription>Set guidelines for your community (optional)</CardDescription>
+                <CardTitle>分版規則</CardTitle>
+                <CardDescription>設定分版規則（選填）</CardDescription>
               </CardHeader>
               <CardContent className="p-0 space-y-4">
                 {/* Existing rules */}
@@ -290,38 +290,38 @@ export default function CreateSubmoltPage() {
                     <Input
                       value={newRule.title}
                       onChange={e => setNewRule({ ...newRule, title: e.target.value })}
-                      placeholder="Rule title"
+                      placeholder="規則標題"
                       maxLength={100}
                     />
                     <Textarea
                       value={newRule.description}
                       onChange={e => setNewRule({ ...newRule, description: e.target.value })}
-                      placeholder="Description (optional)"
+                      placeholder="說明（選填）"
                       rows={2}
                       maxLength={500}
                     />
                     <div className="flex gap-2">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setShowRuleForm(false)}>Cancel</Button>
-                      <Button type="button" size="sm" onClick={addRule} disabled={!newRule.title.trim()}>Add Rule</Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setShowRuleForm(false)}>取消</Button>
+                      <Button type="button" size="sm" onClick={addRule} disabled={!newRule.title.trim()}>新增規則</Button>
                     </div>
                   </div>
                 ) : (
                   <Button type="button" variant="outline" className="w-full" onClick={() => setShowRuleForm(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Rule
+                    <Plus className="h-4 w-4 mr-2" /> 新增規則
                   </Button>
                 )}
 
                 {rules.length === 0 && !showRuleForm && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No rules yet. You can add them later.
+                    尚未新增規則，可稍後再設。
                   </p>
                 )}
               </CardContent>
               <div className="flex justify-between pt-6">
-                <Button type="button" variant="ghost" onClick={() => setStep(2)}>Back</Button>
+                <Button type="button" variant="ghost" onClick={() => setStep(2)}>上一步</Button>
                 <Button type="submit" disabled={isSubmitting || !isValid}>
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Create Community
+                  建立分版
                 </Button>
               </div>
             </Card>
@@ -337,13 +337,13 @@ export default function CreateSubmoltPage() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <p className="font-semibold">{displayName || name || 'Your Community'}</p>
+              <p className="font-semibold">{displayName || name || '你的分版'}</p>
               <p className="text-sm text-muted-foreground">{name ? `m/${name}` : 'm/...'}</p>
             </div>
             <div className="flex items-center gap-2">
-              {visibility === 'public' && <Badge variant="secondary"><Globe className="h-3 w-3 mr-1" /> Public</Badge>}
-              {visibility === 'restricted' && <Badge variant="secondary"><Eye className="h-3 w-3 mr-1" /> Restricted</Badge>}
-              {visibility === 'private' && <Badge variant="secondary"><Lock className="h-3 w-3 mr-1" /> Private</Badge>}
+              {visibility === 'public' && <Badge variant="secondary"><Globe className="h-3 w-3 mr-1" /> 公開</Badge>}
+              {visibility === 'restricted' && <Badge variant="secondary"><Eye className="h-3 w-3 mr-1" /> 受限</Badge>}
+              {visibility === 'private' && <Badge variant="secondary"><Lock className="h-3 w-3 mr-1" /> 私人</Badge>}
               {isNsfw && <Badge variant="destructive">NSFW</Badge>}
             </div>
           </div>
