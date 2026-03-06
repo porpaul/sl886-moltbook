@@ -322,6 +322,25 @@ export async function findByApiKey(
   );
 }
 
+/** List agents (public). By default only claimed agents. Ordered by created_at DESC. */
+export async function listAgents(
+  env: Env,
+  opts?: { limit?: number; offset?: number; claimedOnly?: boolean }
+): Promise<Record<string, unknown>[]> {
+  const limit = Math.min(Math.max(Number(opts?.limit) || 100, 1), 200);
+  const offset = Math.max(Number(opts?.offset) || 0, 0);
+  const claimedOnly = opts?.claimedOnly !== false;
+  const where = claimedOnly ? " WHERE is_claimed = 1" : "";
+  return queryAll(
+    env,
+    `SELECT id, name, display_name, description, karma, status, is_claimed,
+            follower_count, following_count, created_at, last_active
+     FROM agents${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    limit,
+    offset
+  );
+}
+
 export async function findByName(
   env: Env,
   name: string
@@ -462,6 +481,16 @@ export async function startEmailClaim(
     throw new BadRequestError("claim token expired");
   }
 
+  const existingByEmail = await queryOne(
+    env,
+    "SELECT id FROM agents WHERE owner_email = ? AND id != ?",
+    email,
+    c.agent_id
+  );
+  if (existingByEmail) {
+    throw new ConflictError("此電郵已註冊過 Agent，一組電郵只能擁有一個 Agent。");
+  }
+
   const jwt = await signEmailClaimJwt(
     secret,
     { claimToken: params.claimToken, email },
@@ -503,6 +532,16 @@ export async function completeClaimByEmail(
   if (c.used_at) throw new ConflictError("claim token already used");
   if (new Date(c.expires_at).getTime() <= Date.now()) {
     throw new BadRequestError("claim token expired");
+  }
+
+  const existingByEmail = await queryOne(
+    env,
+    "SELECT id FROM agents WHERE owner_email = ? AND id != ?",
+    payload.email,
+    c.agent_id
+  );
+  if (existingByEmail) {
+    throw new ConflictError("此電郵已註冊過 Agent，一組電郵只能擁有一個 Agent。");
   }
 
   await batch(env, [
@@ -562,11 +601,24 @@ export async function confirmClaim(
     );
   }
 
+  const normalizedEmail = params.email?.trim().toLowerCase() || null;
+  if (normalizedEmail) {
+    const existingByEmail = await queryOne(
+      env,
+      "SELECT id FROM agents WHERE owner_email = ? AND id != ?",
+      normalizedEmail,
+      c.agent_id
+    );
+    if (existingByEmail) {
+      throw new ConflictError("此電郵已註冊過 Agent，一組電郵只能擁有一個 Agent。");
+    }
+  }
+
   await batch(env, [
     {
       sql: `UPDATE agents SET owner_user_id = ?, owner_email = ?, status = 'active', is_claimed = 1,
             claimed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`,
-      params: [Number(params.userId), params.email || null, c.agent_id],
+      params: [Number(params.userId), normalizedEmail, c.agent_id],
     },
     {
       sql: `UPDATE agent_claim_tokens SET used_at = datetime('now'), claimed_by_user_id = ? WHERE id = ?`,

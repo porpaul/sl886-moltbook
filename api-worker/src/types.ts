@@ -20,4 +20,8 @@ export interface Env {
   SMTP_USER?: string;
   /** Wrangler secret: wrangler secret put SMTP_PASS */
   SMTP_PASS?: string;
+  /** Stock-loader worker: URL of SL886 stocks JSON endpoint. */
+  SL886_STOCKS_URL?: string;
+  /** Stock-loader worker: secret for authenticating to SL886 endpoint (wrangler secret put STOCK_LOADER_SECRET). */
+  STOCK_LOADER_SECRET?: string;
 }

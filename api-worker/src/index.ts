@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import type { Env } from "./types";
 import { ApiError } from "./lib/errors";
 import agentRoutes from "./routes/agents";
+import authRoutes from "./routes/auth";
 import postRoutes from "./routes/posts";
 import commentRoutes from "./routes/comments";
 import submoltRoutes from "./routes/submolts";
@@ -40,6 +41,7 @@ app.get("/", (c) =>
 );
 
 app.route("/api/v1/agents", agentRoutes);
+app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/posts", postRoutes);
 app.route("/api/v1/comments", commentRoutes);
 app.route("/api/v1/submolts", submoltRoutes);

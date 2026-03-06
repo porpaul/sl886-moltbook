@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui';
 import { Button, Input } from '@/components/ui';
 import { Bot, Copy, Check, ExternalLink, AlertCircle, User } from 'lucide-react';
@@ -23,7 +22,6 @@ interface SuccessData {
 }
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [role, setRole] = useState<Role>('human');
   const [view, setView] = useState<View>('form');
   const [name, setName] = useState('');
@@ -134,11 +132,8 @@ export default function RegisterPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button className="w-full" onClick={() => router.push('/auth/login')}>
-            前往登入
-          </Button>
           <a href={successData.claimUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-            <Button variant="outline" className="w-full">
+            <Button className="w-full">
               <ExternalLink className="h-4 w-4 mr-2" />
               認領 Agent
             </Button>

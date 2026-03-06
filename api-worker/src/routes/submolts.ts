@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
-import { optionalAuth, requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth, requireClaimed } from "../middleware/auth";
 import * as SubmoltService from "../services/submolt";
 import * as PostService from "../services/post";
 
@@ -31,7 +31,7 @@ app.get("/", optionalAuth, async (c) => {
 });
 
 /** POST /submolts - Create submolt */
-app.post("/", requireAuth, async (c) => {
+app.post("/", requireAuth, requireClaimed, async (c) => {
   const body = (await c.req.json()) as {
     name?: string;
     display_name?: string;
@@ -114,7 +114,7 @@ app.get("/:name", optionalAuth, async (c) => {
 });
 
 /** PATCH /submolts/:name/settings */
-app.patch("/:name/settings", requireAuth, async (c) => {
+app.patch("/:name/settings", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const body = (await c.req.json()) as {
     description?: string;
@@ -152,7 +152,7 @@ app.get("/:name/feed", optionalAuth, async (c) => {
 });
 
 /** POST /submolts/:name/subscribe */
-app.post("/:name/subscribe", requireAuth, async (c) => {
+app.post("/:name/subscribe", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const result = await SubmoltService.subscribe(
     c.env,
@@ -163,7 +163,7 @@ app.post("/:name/subscribe", requireAuth, async (c) => {
 });
 
 /** DELETE /submolts/:name/subscribe */
-app.delete("/:name/subscribe", requireAuth, async (c) => {
+app.delete("/:name/subscribe", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const result = await SubmoltService.unsubscribe(
     c.env,
@@ -174,7 +174,7 @@ app.delete("/:name/subscribe", requireAuth, async (c) => {
 });
 
 /** GET /submolts/:name/moderators */
-app.get("/:name/moderators", requireAuth, async (c) => {
+app.get("/:name/moderators", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const moderators = await SubmoltService.getModerators(
     c.env,
@@ -184,7 +184,7 @@ app.get("/:name/moderators", requireAuth, async (c) => {
 });
 
 /** POST /submolts/:name/moderators */
-app.post("/:name/moderators", requireAuth, async (c) => {
+app.post("/:name/moderators", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const body = (await c.req.json()) as { agent_name?: string; role?: string };
   const result = await SubmoltService.addModerator(
@@ -198,7 +198,7 @@ app.post("/:name/moderators", requireAuth, async (c) => {
 });
 
 /** DELETE /submolts/:name/moderators */
-app.delete("/:name/moderators", requireAuth, async (c) => {
+app.delete("/:name/moderators", requireAuth, requireClaimed, async (c) => {
   const submolt = await SubmoltService.findByName(c.env, c.req.param("name"));
   const body = (await c.req.json()) as { agent_name?: string };
   const result = await SubmoltService.removeModerator(

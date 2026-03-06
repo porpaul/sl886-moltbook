@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
-import { optionalAuth, requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth, requireClaimed } from "../middleware/auth";
 import { requirePostingEligibility, checkSafeContent } from "../middleware/posting-policy";
 import * as PostService from "../services/post";
 import * as CommentService from "../services/comment";
@@ -46,6 +46,7 @@ app.get("/", optionalAuth, async (c) => {
 app.post(
   "/",
   requireAuth,
+  requireClaimed,
   requirePostingEligibility,
   async (c) => {
     const body = (await c.req.json()) as {
@@ -80,13 +81,13 @@ app.get("/:id", optionalAuth, async (c) => {
 });
 
 /** DELETE /posts/:id */
-app.delete("/:id", requireAuth, async (c) => {
+app.delete("/:id", requireAuth, requireClaimed, async (c) => {
   await PostService.deletePost(c.env, c.req.param("id"), c.get("agent").id);
   return c.body(null, 204);
 });
 
 /** POST /posts/:id/upvote */
-app.post("/:id/upvote", requireAuth, async (c) => {
+app.post("/:id/upvote", requireAuth, requireClaimed, async (c) => {
   const result = await VoteService.upvotePost(
     c.env,
     c.req.param("id"),
@@ -96,7 +97,7 @@ app.post("/:id/upvote", requireAuth, async (c) => {
 });
 
 /** POST /posts/:id/downvote */
-app.post("/:id/downvote", requireAuth, async (c) => {
+app.post("/:id/downvote", requireAuth, requireClaimed, async (c) => {
   const result = await VoteService.downvotePost(
     c.env,
     c.req.param("id"),
@@ -123,6 +124,7 @@ app.get("/:id/comments", optionalAuth, async (c) => {
 app.post(
   "/:id/comments",
   requireAuth,
+  requireClaimed,
   requirePostingEligibility,
   async (c) => {
     const body = (await c.req.json()) as { content?: string; parent_id?: string };

@@ -36,12 +36,14 @@ export async function ensureStockChannel(
   env: Env,
   market: string,
   symbol: string,
-  creatorId: string | null = null
+  creatorId: string | null = null,
+  displayName?: string | null
 ): Promise<Record<string, unknown>> {
   const normalized = normalizeStockSymbol(market, symbol);
   const found = await queryOne(
     env,
-    `SELECT id, name, display_name, description, subscriber_count, created_at, channel_type, market, symbol, normalized_symbol
+    `SELECT id, name, display_name, description, avatar_url, banner_url, banner_color, theme_color,
+            subscriber_count, post_count, created_at, updated_at, channel_type, market, symbol, normalized_symbol
      FROM submolts WHERE channel_type = 'stock' AND market = ? AND normalized_symbol = ?`,
     normalized.market,
     normalized.normalizedSymbol
@@ -52,8 +54,12 @@ export async function ensureStockChannel(
   if (!autoCreate) throw new NotFoundError("Stock channel");
 
   const channelName = toStockSubmoltName(normalized.market, normalized.normalizedSymbol);
-  const displayName = `${normalized.market}:${normalized.normalizedSymbol}`;
-  const description = `討論 ${displayName} 的專屬頻道`;
+  const codeLabel = `${normalized.market}:${normalized.normalizedSymbol}`;
+  const displayNameStr =
+    displayName != null && String(displayName).trim()
+      ? `${String(displayName).trim()} (${codeLabel})`
+      : codeLabel;
+  const description = `討論 ${displayNameStr} 的專屬頻道`;
   const id = crypto.randomUUID();
   await queryOne(
     env,
@@ -61,7 +67,7 @@ export async function ensureStockChannel(
      VALUES (?, ?, ?, ?, ?, 'stock', ?, ?, ?, 1)`,
     id,
     channelName,
-    displayName,
+    displayNameStr,
     description,
     creatorId,
     normalized.market,
@@ -70,7 +76,8 @@ export async function ensureStockChannel(
   );
   const row = await queryOne(
     env,
-    `SELECT id, name, display_name, description, subscriber_count, created_at, channel_type, market, symbol, normalized_symbol
+    `SELECT id, name, display_name, description, avatar_url, banner_url, banner_color, theme_color,
+            subscriber_count, post_count, created_at, updated_at, channel_type, market, symbol, normalized_symbol
      FROM submolts WHERE id = ?`,
     id
   );

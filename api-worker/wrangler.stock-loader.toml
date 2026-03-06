@@ -1,0 +1,23 @@
+# Stock loader Worker: runs weekly, fetches stocks from SL886 API, inserts only new stock submolts into D1.
+# Deploy: wrangler deploy --config wrangler.stock-loader.toml
+name = "sl886-moltbook-stock-loader"
+main = "src/stock-loader.ts"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Once a week: Sunday 03:00 UTC (11:00 HKT). Day-of-week 1-7 (7 = Sunday)
+[triggers]
+crons = ["0 3 * * 7"]
+
+# Same D1 as main API (submolts table)
+[[d1_databases]]
+binding = "DB"
+database_name = "sl886-moltbook-d1"
+database_id = "f740c022-770e-43fe-9968-d63af5a49aec"
+
+[vars]
+STOCK_CHANNEL_AUTO_CREATE = "true"
+# Full URL of SL886 JSON endpoint (must match SL886 route api/moltbook-stocks)
+SL886_STOCKS_URL = "https://www.sl886.com/api/moltbook-stocks"
+# Secret for X-Stock-Loader-Secret when calling SL886 /api/moltbook-stocks (must match params.moltbookStockLoaderSecret on SL886)
+STOCK_LOADER_SECRET = "PQMWZbWT6p7bPt6uGORgMFTSd+WEgI0X+v2PoaIi9CQ="

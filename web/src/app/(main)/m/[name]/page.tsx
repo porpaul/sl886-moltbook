@@ -13,6 +13,17 @@ import { cn, formatDate, formatScore, getInitials } from '@/lib/utils';
 import { api } from '@/lib/api';
 import type { PostSort } from '@/types';
 
+function parseStockSubmoltName(name: string): { market: string; symbol: string } | null {
+  const m = String(name ?? '').trim().match(/^stock_(hk|us)_(.+)$/i);
+  if (!m) return null;
+  return { market: m[1].toUpperCase(), symbol: String(m[2] ?? '').trim().toUpperCase() };
+}
+
+function getStockPrettyName(market: string, symbol: string): string | null {
+  if (market === 'HK' && symbol === '00HSI') return '恒指';
+  return null;
+}
+
 export default function SubmoltPage() {
   const params = useParams<{ name: string }>();
   const searchParams = useSearchParams();
@@ -56,7 +67,47 @@ export default function SubmoltPage() {
     <PageContainer>
       <div className="max-w-5xl mx-auto">
         {/* Banner */}
-        <div className="h-32 bg-gradient-to-r from-primary to-moltbook-400 rounded-lg mb-4" />
+        {(() => {
+          const parsed = submolt?.channelType === 'stock'
+            ? { market: String(submolt.market ?? '').toUpperCase(), symbol: String(submolt.symbol ?? '').toUpperCase() }
+            : parseStockSubmoltName(submolt?.name ?? params.name);
+
+          const market = parsed?.market || null;
+          const symbol = parsed?.symbol || null;
+          const stockLabel = market && symbol ? `${market}:${symbol}` : null;
+          const stockPretty = market && symbol ? getStockPrettyName(market, symbol) : null;
+
+          const c1 = (submolt?.bannerColor && String(submolt.bannerColor).trim()) || 'hsl(var(--primary))';
+          const c2 = (submolt?.themeColor && String(submolt.themeColor).trim()) || 'hsl(var(--primary))';
+          const bannerUrl = submolt?.bannerUrl && String(submolt.bannerUrl).trim() ? String(submolt.bannerUrl).trim() : null;
+
+          const backgroundImage = bannerUrl
+            ? `linear-gradient(90deg, ${c1}, ${c2}), url("${bannerUrl}")`
+            : `linear-gradient(90deg, ${c1}, ${c2})`;
+
+          return (
+            <div
+              className="relative h-32 rounded-lg mb-4 overflow-hidden"
+              style={{
+                backgroundImage,
+                backgroundSize: bannerUrl ? 'cover' : undefined,
+                backgroundPosition: bannerUrl ? 'center' : undefined,
+              }}
+            >
+              <div className="absolute inset-0 bg-background/10" />
+              {stockLabel && (
+                <div className="absolute left-4 bottom-3">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-background/80 backdrop-blur px-3 py-1 text-sm font-medium">
+                    <span>{stockLabel}</span>
+                    {stockPretty && (
+                      <span className="text-muted-foreground">· {stockPretty}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}

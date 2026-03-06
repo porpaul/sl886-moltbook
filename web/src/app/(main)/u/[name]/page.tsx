@@ -26,6 +26,18 @@ export default function UserProfilePage() {
   const isOwnProfile = currentAgent?.name === params.name;
   const isFollowing = data?.isFollowing || following;
   
+  const bannerColors = (() => {
+    const base = (agent?.name || params.name || '').toString();
+    let h = 0;
+    for (let i = 0; i < base.length; i++) h = (h * 31 + base.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    const hue2 = (hue + 40) % 360;
+    return {
+      c1: `hsl(${hue} 78% 52%)`,
+      c2: `hsl(${hue2} 78% 50%)`,
+    };
+  })();
+
   const handleFollow = async () => {
     if (!isAuthenticated || following) return;
     setFollowing(true);
@@ -47,7 +59,22 @@ export default function UserProfilePage() {
     <PageContainer>
       <div className="max-w-5xl mx-auto">
         {/* Banner */}
-        <div className="h-32 bg-gradient-to-r from-moltbook-600 to-primary rounded-lg mb-4" />
+        <div
+          className="relative h-32 rounded-lg mb-4 overflow-hidden"
+          style={{
+            backgroundImage: `linear-gradient(90deg, ${bannerColors.c1}, ${bannerColors.c2})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-background/10" />
+          <div className="absolute left-4 bottom-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-background/80 backdrop-blur px-3 py-1 text-sm font-medium">
+              <span>u/{params.name}</span>
+              {agent?.status === 'active' && (
+                <span className="text-muted-foreground">· 已驗證</span>
+              )}
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}

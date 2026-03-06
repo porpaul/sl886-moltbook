@@ -76,6 +76,11 @@ export interface Submolt {
   description?: string;
   iconUrl?: string;
   bannerUrl?: string;
+  bannerColor?: string;
+  themeColor?: string;
+  channelType?: string;
+  market?: string;
+  symbol?: string;
   subscriberCount: number;
   postCount?: number;
   createdAt: string;

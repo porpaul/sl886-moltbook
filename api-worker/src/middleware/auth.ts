@@ -18,6 +18,62 @@ export interface AgentInfo {
   createdAt: string;
 }
 
+const SESSION_TOKEN_PREFIX = "moltbook_session_";
+
+async function resolveAgentFromToken(env: Env, token: string): Promise<AgentInfo | null> {
+  if (token.startsWith(SESSION_TOKEN_PREFIX)) {
+    const tokenHash = await sha256Hex(token);
+    const session = await queryOne(
+      env,
+      "SELECT agent_id, expires_at FROM agent_login_sessions WHERE token_hash = ?",
+      tokenHash
+    );
+    if (!session) return null;
+    const s = session as { agent_id: string; expires_at: string };
+    if (new Date(s.expires_at).getTime() <= Date.now()) return null;
+    const row = await queryOne(
+      env,
+      "SELECT id, name, external_agent_id, display_name, description, karma, status, is_claimed, owner_user_id, created_at FROM agents WHERE id = ?",
+      s.agent_id
+    );
+    if (!row) return null;
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      externalAgentId: row.external_agent_id != null ? String(row.external_agent_id) : null,
+      displayName: row.display_name != null ? String(row.display_name) : null,
+      description: row.description != null ? String(row.description) : null,
+      karma: Number(row.karma ?? 0),
+      status: String(row.status ?? "pending_claim"),
+      isClaimed: Number(row.is_claimed ?? 0) === 1,
+      ownerUserId: row.owner_user_id != null ? Number(row.owner_user_id) : null,
+      createdAt: String(row.created_at ?? ""),
+    };
+  }
+
+  const validPrefixes = ["moltbook_", "sl886_agent_"];
+  if (!validPrefixes.some((p) => validateApiKey(token, p))) return null;
+  const apiKeyHash = await sha256Hex(token);
+  const row = await queryOne(
+    env,
+    "SELECT id, name, external_agent_id, display_name, description, karma, status, is_claimed, owner_user_id, created_at FROM agents WHERE api_key_hash = ?",
+    apiKeyHash
+  );
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    externalAgentId: row.external_agent_id != null ? String(row.external_agent_id) : null,
+    displayName: row.display_name != null ? String(row.display_name) : null,
+    description: row.description != null ? String(row.description) : null,
+    karma: Number(row.karma ?? 0),
+    status: String(row.status ?? "pending_claim"),
+    isClaimed: Number(row.is_claimed ?? 0) === 1,
+    ownerUserId: row.owner_user_id != null ? Number(row.owner_user_id) : null,
+    createdAt: String(row.created_at ?? ""),
+  };
+}
+
 export async function requireAuth(c: Context<{ Bindings: Env; Variables: { agent: AgentInfo } }>, next: Next) {
   const authHeader = c.req.header("Authorization");
   const token = extractToken(authHeader);
@@ -28,36 +84,13 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: { agent
     );
   }
 
-  const validPrefixes = ["moltbook_", "sl886_agent_"];
-  if (!validPrefixes.some((p) => validateApiKey(token, p))) {
-    throw new UnauthorizedError("Invalid API key format");
-  }
-
-  const apiKeyHash = await sha256Hex(token);
-  const row = await queryOne(
-    c.env,
-    "SELECT id, name, external_agent_id, display_name, description, karma, status, is_claimed, owner_user_id, created_at FROM agents WHERE api_key_hash = ?",
-    apiKeyHash
-  );
-  if (!row) {
+  const agent = await resolveAgentFromToken(c.env, token);
+  if (!agent) {
     throw new UnauthorizedError(
       "Invalid or expired token",
       "Check your API key or register for a new one"
     );
   }
-
-  const agent: AgentInfo = {
-    id: String(row.id),
-    name: String(row.name),
-    externalAgentId: row.external_agent_id != null ? String(row.external_agent_id) : null,
-    displayName: row.display_name != null ? String(row.display_name) : null,
-    description: row.description != null ? String(row.description) : null,
-    karma: Number(row.karma ?? 0),
-    status: String(row.status ?? "pending_claim"),
-    isClaimed: Number(row.is_claimed ?? 0) === 1,
-    ownerUserId: row.owner_user_id != null ? Number(row.owner_user_id) : null,
-    createdAt: String(row.created_at ?? ""),
-  };
   c.set("agent", agent);
   await next();
 }
@@ -66,33 +99,12 @@ export async function requireAuth(c: Context<{ Bindings: Env; Variables: { agent
 export async function optionalAuth(c: Context<{ Bindings: Env; Variables: { agent?: AgentInfo } }>, next: Next) {
   const authHeader = c.req.header("Authorization");
   const token = extractToken(authHeader);
-  if (!token || !["moltbook_", "sl886_agent_"].some((p) => validateApiKey(token, p))) {
+  if (!token) {
     await next();
     return;
   }
-  const apiKeyHash = await sha256Hex(token);
-  const row = await queryOne(
-    c.env,
-    "SELECT id, name, external_agent_id, display_name, description, karma, status, is_claimed, owner_user_id, created_at FROM agents WHERE api_key_hash = ?",
-    apiKeyHash
-  );
-  if (!row) {
-    await next();
-    return;
-  }
-  const agent: AgentInfo = {
-    id: String(row.id),
-    name: String(row.name),
-    externalAgentId: row.external_agent_id != null ? String(row.external_agent_id) : null,
-    displayName: row.display_name != null ? String(row.display_name) : null,
-    description: row.description != null ? String(row.description) : null,
-    karma: Number(row.karma ?? 0),
-    status: String(row.status ?? "pending_claim"),
-    isClaimed: Number(row.is_claimed ?? 0) === 1,
-    ownerUserId: row.owner_user_id != null ? Number(row.owner_user_id) : null,
-    createdAt: String(row.created_at ?? ""),
-  };
-  c.set("agent", agent);
+  const agent = await resolveAgentFromToken(c.env, token);
+  if (agent) c.set("agent", agent);
   await next();
 }
 

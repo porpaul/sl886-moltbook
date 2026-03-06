@@ -4,6 +4,30 @@ import type { Agent, Post, Comment, Submolt, SearchResults, PaginatedResponse, C
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://www.moltbook.com/api/v1';
 
+function normalizeSubmolt(row: Record<string, unknown>): Submolt {
+  return {
+    id: String(row.id ?? ''),
+    name: String(row.name ?? ''),
+    displayName: row.display_name != null ? String(row.display_name) : (row.displayName as string | undefined),
+    description: row.description != null ? String(row.description) : (row.description as string | undefined),
+    iconUrl: row.avatar_url != null ? String(row.avatar_url) : (row.iconUrl as string | undefined),
+    bannerUrl: row.banner_url != null ? String(row.banner_url) : (row.bannerUrl as string | undefined),
+    bannerColor: row.banner_color != null ? String(row.banner_color) : (row.bannerColor as string | undefined),
+    themeColor: row.theme_color != null ? String(row.theme_color) : (row.themeColor as string | undefined),
+    channelType: row.channel_type != null ? String(row.channel_type) : (row.channelType as string | undefined),
+    market: row.market != null ? String(row.market) : (row.market as string | undefined),
+    symbol: row.symbol != null ? String(row.symbol) : (row.symbol as string | undefined),
+    subscriberCount: Number(row.subscriber_count ?? row.subscriberCount ?? 0),
+    postCount: row.post_count != null ? Number(row.post_count) : (row.postCount as number | undefined),
+    createdAt: String(row.created_at ?? row.createdAt ?? ''),
+    creatorId: row.creator_id != null ? String(row.creator_id) : (row.creatorId as string | undefined),
+    creatorName: row.creator_name != null ? String(row.creator_name) : (row.creatorName as string | undefined),
+    isSubscribed: row.is_subscribed != null ? Boolean(row.is_subscribed) : (row.isSubscribed as boolean | undefined),
+    isNsfw: row.is_nsfw != null ? Boolean(row.is_nsfw) : (row.isNsfw as boolean | undefined),
+    yourRole: (row.your_role as any) ?? (row.yourRole as any),
+  };
+}
+
 class ApiError extends Error {
   constructor(public statusCode: number, message: string, public code?: string, public hint?: string) {
     super(message);
@@ -13,6 +37,7 @@ class ApiError extends Error {
 
 class ApiClient {
   private apiKey: string | null = null;
+  private sessionToken: string | null = null;
   private humanToken: string | null = null;
 
   setApiKey(key: string | null) {
@@ -34,6 +59,29 @@ class ApiClient {
     this.apiKey = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('moltbook_api_key');
+    }
+  }
+
+  setSessionToken(token: string | null) {
+    this.sessionToken = token;
+    if (typeof window !== 'undefined') {
+      if (token) localStorage.setItem('moltbook_session_token', token);
+      else localStorage.removeItem('moltbook_session_token');
+    }
+  }
+
+  getSessionToken(): string | null {
+    if (this.sessionToken) return this.sessionToken;
+    if (typeof window !== 'undefined') {
+      this.sessionToken = localStorage.getItem('moltbook_session_token');
+    }
+    return this.sessionToken;
+  }
+
+  clearSessionToken() {
+    this.sessionToken = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('moltbook_session_token');
     }
   }
 
@@ -65,9 +113,11 @@ class ApiClient {
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = this.getApiKey();
+    const sessionToken = this.getSessionToken();
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    else if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
     const humanToken = this.getHumanToken();
-    if (!apiKey && humanToken) headers['X-SL886-Access-Token'] = humanToken;
+    if (!apiKey && !sessionToken && humanToken) headers['X-SL886-Access-Token'] = humanToken;
 
     const response = await fetch(url.toString(), {
       method,
@@ -106,8 +156,24 @@ class ApiClient {
     return this.request<{ agent: Agent }>('GET', '/agents/me').then(r => r.agent);
   }
 
+  async sendLoginLink(email: string) {
+    return this.request<{ sent: boolean }>('POST', '/auth/send-login-link', { email });
+  }
+
+  async verifyLogin(t: string) {
+    return this.request<{ sessionToken: string; agent: { id: string; name: string } }>('POST', '/auth/verify-login', { t });
+  }
+
   async updateMe(data: { displayName?: string; description?: string }) {
     return this.request<{ agent: Agent }>('PATCH', '/agents/me', data).then(r => r.agent);
+  }
+
+  async getAgents(options?: { limit?: number; offset?: number }) {
+    const res = await this.request<{ data: { agents: Agent[] } }>('GET', 'agents', undefined, {
+      limit: options?.limit,
+      offset: options?.offset,
+    });
+    return res.data.agents;
   }
 
   async getAgent(name: string) {
@@ -179,23 +245,30 @@ class ApiClient {
 
   // Submolt endpoints
   async getSubmolts(options: { sort?: string; limit?: number; offset?: number } = {}) {
-    return this.request<PaginatedResponse<Submolt>>('GET', '/submolts', undefined, {
+    const res = await this.request<PaginatedResponse<Record<string, unknown>>>('GET', '/submolts', undefined, {
       sort: options.sort || 'popular',
       limit: options.limit || 50,
       offset: options.offset || 0,
     });
+    return {
+      ...res,
+      data: (Array.isArray(res.data) ? res.data : []).map((s) => normalizeSubmolt(s as Record<string, unknown>)),
+    } as PaginatedResponse<Submolt>;
   }
 
   async getSubmolt(name: string) {
-    return this.request<{ submolt: Submolt }>('GET', `/submolts/${name}`).then(r => r.submolt);
+    const res = await this.request<{ submolt: Record<string, unknown> }>('GET', `/submolts/${name}`);
+    return normalizeSubmolt(res.submolt ?? {});
   }
 
   async getStockSubmolt(market: string, symbol: string) {
-    return this.request<{ submolt: Submolt }>('GET', `/submolts/stock/${market}/${symbol}`).then(r => r.submolt);
+    const res = await this.request<{ submolt: Record<string, unknown> }>('GET', `/submolts/stock/${market}/${symbol}`);
+    return normalizeSubmolt(res.submolt ?? {});
   }
 
   async createSubmolt(data: { name: string; displayName?: string; description?: string }) {
-    return this.request<{ submolt: Submolt }>('POST', '/submolts', data).then(r => r.submolt);
+    const res = await this.request<{ submolt: Record<string, unknown> }>('POST', '/submolts', data);
+    return normalizeSubmolt(res.submolt ?? {});
   }
 
   async subscribeSubmolt(name: string) {

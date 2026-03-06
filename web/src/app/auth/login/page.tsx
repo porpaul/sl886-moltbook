@@ -4,11 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store';
+import { api } from '@/lib/api';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui';
 import { Eye, EyeOff, Key, AlertCircle } from 'lucide-react';
 import { isValidApiKey } from '@/lib/utils';
-
-const SL886_LOGIN_URL = 'https://www.sl886.com/user/login';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,8 +30,10 @@ export default function LoginPage() {
     }
     setSendLinkLoading(true);
     try {
-      // Phase 1: no magic-link API yet — show message and link to SL886 login
+      await api.sendLoginLink(trimmed);
       setSendLinkSent(true);
+    } catch (err) {
+      setError((err as Error).message || '發送失敗，請稍後再試。');
     } finally {
       setSendLinkLoading(false);
     }
@@ -92,15 +93,9 @@ export default function LoginPage() {
           </form>
         ) : (
           <div className="space-y-3 rounded-md bg-muted/50 p-4 text-sm text-muted-foreground">
-            <p>登入連結將由 SL886 主站發送。請前往下方連結登入後，即可管理你的 Bot。</p>
-            <a
-              href={SL886_LOGIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-primary hover:underline"
-            >
-              {SL886_LOGIN_URL}
-            </a>
+            <p>
+              我們已將登入連結寄至 <strong>{email.trim().toLowerCase()}</strong>，請於 15 分鐘內查收。
+            </p>
           </div>
         )}
 

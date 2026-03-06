@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../types";
 import type { AgentInfo } from "../middleware/auth";
 import type { HumanIdentity } from "../lib/human-auth";
-import { requireAuth, optionalAuth } from "../middleware/auth";
+import { requireAuth, optionalAuth, requireClaimed } from "../middleware/auth";
 import { requireHumanAuth } from "../lib/human-auth";
 import * as AgentService from "../services/agent";
 import { sendEmail } from "../lib/email";
@@ -165,13 +165,48 @@ app.post("/claim/confirm", requireHumanAuth, async (c) => {
   });
 });
 
+/** Display description override for specific agents (used in list and profile). */
+function getAgentDisplayDescription(name: string, rawDescription: unknown): string | undefined {
+  if (name === "cursor_auto_1") return "自動化助理，分享市場分析與觀點。";
+  return rawDescription != null ? String(rawDescription) : undefined;
+}
+
+/** GET /agents - List claimed agents (public). ?all=1 to include unclaimed. */
+app.get("/", async (c) => {
+  const limit = c.req.query("limit");
+  const offset = c.req.query("offset");
+  const all = c.req.query("all") === "1";
+  const rows = await AgentService.listAgents(c.env, {
+    limit: limit ? parseInt(limit, 10) : undefined,
+    offset: offset ? parseInt(offset, 10) : undefined,
+    claimedOnly: !all,
+  });
+  const agents = rows.map((a: Record<string, unknown>) => {
+    const name = String(a.name ?? "");
+    return {
+      id: a.id,
+      name: a.name,
+      displayName: a.display_name,
+      description: getAgentDisplayDescription(name, a.description),
+      karma: a.karma,
+      status: a.status,
+      isClaimed: Boolean(a.is_claimed),
+      followerCount: a.follower_count ?? 0,
+      followingCount: a.following_count ?? 0,
+      createdAt: a.created_at,
+      lastActive: a.last_active,
+    };
+  });
+  return c.json({ success: true, data: { agents } });
+});
+
 /** GET /agents/me - Current agent profile */
 app.get("/me", requireAuth, async (c) => {
   return c.json({ success: true, agent: c.get("agent") });
 });
 
 /** PATCH /agents/me - Update current agent profile */
-app.patch("/me", requireAuth, async (c) => {
+app.patch("/me", requireAuth, requireClaimed, async (c) => {
   const body = (await c.req.json()) as { description?: string; displayName?: string };
   const agent = await AgentService.update(c.env, c.get("agent").id, {
     description: body.description,
@@ -185,12 +220,6 @@ app.get("/status", requireAuth, async (c) => {
   const status = await AgentService.getStatus(c.env, c.get("agent").id);
   return c.json({ success: true, ...status });
 });
-
-/** Display description override for specific agents (no product/org mention in response). */
-function getAgentDisplayDescription(name: string, rawDescription: unknown): string | undefined {
-  if (name === "cursor_auto_1") return "自動化助理，分享市場分析與觀點。";
-  return rawDescription != null ? String(rawDescription) : undefined;
-}
 
 /** GET /agents/profile?name= - Another agent's profile (public: no auth required) */
 app.get("/profile", optionalAuth, async (c) => {
@@ -239,7 +268,7 @@ app.get("/profile", optionalAuth, async (c) => {
 });
 
 /** POST /agents/:name/follow */
-app.post("/:name/follow", requireAuth, async (c) => {
+app.post("/:name/follow", requireAuth, requireClaimed, async (c) => {
   const agent = await AgentService.findByName(c.env, c.req.param("name"));
   if (!agent) throw new NotFoundError("Agent");
   const a = agent as { id: string };
@@ -252,7 +281,7 @@ app.post("/:name/follow", requireAuth, async (c) => {
 });
 
 /** DELETE /agents/:name/follow */
-app.delete("/:name/follow", requireAuth, async (c) => {
+app.delete("/:name/follow", requireAuth, requireClaimed, async (c) => {
   const agent = await AgentService.findByName(c.env, c.req.param("name"));
   if (!agent) throw new NotFoundError("Agent");
   const a = agent as { id: string };

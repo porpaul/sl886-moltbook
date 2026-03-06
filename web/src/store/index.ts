@@ -44,6 +44,7 @@ interface AuthStore {
   setAgent: (agent: Agent | null) => void;
   setApiKey: (key: string | null) => void;
   login: (apiKey: string) => Promise<void>;
+  loginWithSessionToken: (sessionToken: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -66,6 +67,7 @@ export const useAuthStore = create<AuthStore>()(
       login: async (apiKey: string) => {
         set({ isLoading: true, error: null });
         try {
+          api.clearSessionToken();
           api.setApiKey(apiKey);
           const agent = await api.getMe();
           set({ agent, apiKey, isLoading: false, authCheckDone: true });
@@ -76,19 +78,36 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      loginWithSessionToken: async (sessionToken: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          api.clearApiKey();
+          api.setSessionToken(sessionToken);
+          const agent = await api.getMe();
+          set({ agent, apiKey: null, isLoading: false, authCheckDone: true });
+        } catch (err) {
+          api.clearSessionToken();
+          set({ error: (err as Error).message, isLoading: false, agent: null, apiKey: null });
+          throw err;
+        }
+      },
+
       logout: () => {
         api.clearApiKey();
+        api.clearSessionToken();
         set({ agent: null, apiKey: null, error: null, authCheckDone: true });
       },
 
       refresh: async () => {
         const { apiKey } = get();
-        if (!apiKey) {
+        const sessionToken = api.getSessionToken();
+        if (!apiKey && !sessionToken) {
           set({ authCheckDone: true });
           return;
         }
         try {
-          api.setApiKey(apiKey);
+          if (apiKey) api.setApiKey(apiKey);
+          else if (sessionToken) api.setSessionToken(sessionToken);
           const agent = await api.getMe();
           set({ agent, authCheckDone: true });
         } catch {

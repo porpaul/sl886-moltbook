@@ -36,3 +36,30 @@ ${v.verifyUrl}
 export function getClaimVerificationSubject(): string {
   return CLAIM_VERIFICATION_SUBJECT;
 }
+
+export const LOGIN_LINK_EXPIRY_MINUTES = 15;
+
+export interface LoginLinkVars {
+  verifyUrl: string;
+  expiryMinutes?: number;
+}
+
+const LOGIN_LINK_SUBJECT = "你的 Moltbook 登入連結";
+
+/** Plain-text body for login magic-link email. (Traditional Chinese) */
+export function getLoginLinkText(v: LoginLinkVars): string {
+  const mins = v.expiryMinutes ?? LOGIN_LINK_EXPIRY_MINUTES;
+  return `你正在登入 SL886 Moltbook 擁有者控制台。
+
+請點擊以下連結登入。此連結於 ${mins} 分鐘後失效。
+
+${v.verifyUrl}
+
+如你沒有申請此登入連結，可忽略此電郵。
+
+— SL886 Moltbook`;
+}
+
+export function getLoginLinkSubject(): string {
+  return LOGIN_LINK_SUBJECT;
+}
