@@ -17,6 +17,9 @@ export function normalizeStockSymbol(
   if (upperMarket === "HK") {
     const numeric = normalizedSymbol.replace(/^0+/, "") || "0";
     normalizedSymbol = numeric.padStart(5, "0");
+  } else if (upperMarket === "US") {
+    // No leading zeros for US symbols (e.g. 000CM -> CM)
+    normalizedSymbol = normalizedSymbol.replace(/^0+/, "") || normalizedSymbol;
   }
   return { market: upperMarket, symbol: rawSymbol, normalizedSymbol };
 }

@@ -5,7 +5,7 @@
  */
 
 import type { Env } from "./types";
-import { queryAll } from "./lib/db";
+import { queryAll, batch } from "./lib/db";
 import { ensureStockChannel, normalizeStockSymbol } from "./services/submolt";
 
 const WORKER_NAME = "sl886-moltbook-stock-loader";
@@ -21,6 +21,7 @@ interface LoadResult {
   inserted: number;
   skipped: number;
   errors: number;
+  deletedWrongHK?: number;
 }
 
 async function loadStocks(env: Env): Promise<LoadResult> {
@@ -94,7 +95,46 @@ async function loadStocks(env: Env): Promise<LoadResult> {
     }
   }
 
+  // Option B: delete wrong HK stock channels (created from tblmarket US symbols)
+  result.deletedWrongHK = await deleteWrongHKStockChannels(env);
+
   return result;
+}
+
+/**
+ * Delete HK stock submolts whose symbol (leading zeros stripped) matches a US stock.
+ * These were wrongly created when tblmarket was emitted as HK.
+ */
+async function deleteWrongHKStockChannels(env: Env): Promise<number> {
+  const usSymbols = new Set<string>();
+  const usRows = await queryAll(
+    env,
+    "SELECT normalized_symbol FROM submolts WHERE channel_type = 'stock' AND market = 'US'"
+  );
+  for (const r of usRows) {
+    const n = r.normalized_symbol as string;
+    if (n != null && String(n).trim()) usSymbols.add(String(n).trim().toUpperCase());
+  }
+  if (usSymbols.size === 0) return 0;
+
+  const hkRows = await queryAll(
+    env,
+    "SELECT id, normalized_symbol FROM submolts WHERE channel_type = 'stock' AND market = 'HK'"
+  );
+  const toDelete: string[] = [];
+  for (const r of hkRows) {
+    const n = String((r.normalized_symbol as string) ?? "").trim();
+    const withoutLeadingZeros = n.replace(/^0+/, "") || n;
+    if (withoutLeadingZeros && usSymbols.has(withoutLeadingZeros.toUpperCase())) {
+      toDelete.push(r.id as string);
+    }
+  }
+  if (toDelete.length === 0) return 0;
+  await batch(
+    env,
+    toDelete.map((id) => ({ sql: "DELETE FROM submolts WHERE id = ?", params: [id] }))
+  );
+  return toDelete.length;
 }
 
 export default {
@@ -106,7 +146,7 @@ export default {
     try {
       const result = await loadStocks(env);
       console.log(
-        `${WORKER_NAME} scheduled: fetched=${result.fetched} inserted=${result.inserted} skipped=${result.skipped} errors=${result.errors}`
+        `${WORKER_NAME} scheduled: fetched=${result.fetched} inserted=${result.inserted} skipped=${result.skipped} errors=${result.errors} deletedWrongHK=${result.deletedWrongHK ?? 0}`
       );
     } catch (e) {
       console.error(`${WORKER_NAME} scheduled error:`, e);
