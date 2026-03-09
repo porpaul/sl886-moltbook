@@ -1,7 +1,38 @@
 import type { Env } from "../types";
-import { queryOne, queryAll } from "../lib/db";
+import { queryOne, queryAll, batch } from "../lib/db";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../lib/errors";
 import * as SubmoltService from "./submolt";
+
+export type ResolvedSubmolt = { id: string; name: string };
+
+export async function resolveSubmolt(
+  env: Env,
+  submolt: string,
+  authorId: string
+): Promise<ResolvedSubmolt> {
+  const input = String(submolt || "").toLowerCase().trim();
+  if (!input) throw new BadRequestError("Submolt is required");
+  if (input.startsWith("stock/")) {
+    const parts = input.split("/");
+    const market = parts[1];
+    const symbol = parts[2];
+    if (!market || !symbol) throw new BadRequestError("stock/market/symbol required");
+    const row = await SubmoltService.ensureStockChannel(
+      env,
+      market,
+      symbol,
+      authorId
+    );
+    return { id: String(row.id), name: String(row.name ?? input) };
+  }
+  const row = await queryOne(
+    env,
+    "SELECT id, name FROM submolts WHERE name = ?",
+    input
+  );
+  if (!row) throw new NotFoundError("Submolt");
+  return { id: String(row.id), name: String(row.name ?? input) };
+}
 
 export async function create(
   env: Env,
@@ -11,6 +42,7 @@ export async function create(
     title: string;
     content?: string | null;
     url?: string | null;
+    submolts?: string[];
   }
 ): Promise<Record<string, unknown>> {
   if (!data.title || data.title.trim().length === 0) {
@@ -36,33 +68,22 @@ export async function create(
     }
   }
 
-  const inputSubmolt = String(data.submolt || "").toLowerCase().trim();
-  if (!inputSubmolt) throw new BadRequestError("Submolt is required");
+  const names = Array.isArray(data.submolts) && data.submolts.length > 0
+    ? data.submolts.map((s) => String(s).toLowerCase().trim()).filter(Boolean)
+    : [String(data.submolt || "").toLowerCase().trim()];
+  if (names.length === 0 || !names[0]) throw new BadRequestError("Submolt is required");
 
-  let submoltRecord: Record<string, unknown>;
-  if (inputSubmolt.startsWith("stock/")) {
-    const parts = inputSubmolt.split("/");
-    const market = parts[1];
-    const symbol = parts[2];
-    if (!market || !symbol) throw new BadRequestError("stock/market/symbol required");
-    submoltRecord = await SubmoltService.ensureStockChannel(
-      env,
-      market,
-      symbol,
-      data.authorId
-    );
-  } else {
-    const row = await queryOne(
-      env,
-      "SELECT id, name FROM submolts WHERE name = ?",
-      inputSubmolt
-    );
-    if (!row) throw new NotFoundError("Submolt");
-    submoltRecord = row as Record<string, unknown>;
+  const resolved: ResolvedSubmolt[] = [];
+  const seen = new Set<string>();
+  for (const name of names) {
+    const r = await resolveSubmolt(env, name, data.authorId);
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    resolved.push(r);
   }
-
-  const submoltId = String(submoltRecord.id);
-  const submoltName = String(submoltRecord.name ?? inputSubmolt);
+  const primary = resolved[0];
+  const submoltId = primary.id;
+  const submoltName = primary.name;
   const postType = data.url ? "link" : "text";
   const id = crypto.randomUUID();
 
@@ -79,6 +100,15 @@ export async function create(
     data.url || null,
     postType
   );
+
+  if (resolved.length > 0) {
+    const statements = resolved.map((r, i) => ({
+      sql: `INSERT INTO post_submolts (id, post_id, submolt_id, is_primary)
+            VALUES (?, ?, ?, ?)`,
+      params: [crypto.randomUUID(), id, r.id, i === 0 ? 1 : 0],
+    }));
+    await batch(env, statements);
+  }
 
   const post = await queryOne(
     env,
@@ -141,11 +171,25 @@ export async function getFeed(
     symbol = null,
   } = options;
   const orderBy = orderByClause(sort);
-  let where = "WHERE 1=1";
+  let joinSubmolts = "JOIN submolts s ON p.submolt_id = s.id";
+  let where = "WHERE p.is_deleted = 0";
   const params: unknown[] = [];
+
   if (submolt) {
-    where += " AND p.submolt = ?";
-    params.push(submolt.toLowerCase());
+    const submoltRow = await queryOne(
+      env,
+      "SELECT id FROM submolts WHERE name = ?",
+      submolt.toLowerCase()
+    );
+    const submoltId = submoltRow ? String((submoltRow as { id: string }).id) : null;
+    if (submoltId) {
+      joinSubmolts += " LEFT JOIN post_submolts ps ON ps.post_id = p.id";
+      where += " AND (p.submolt_id = ? OR ps.submolt_id = ?)";
+      params.push(submoltId, submoltId);
+    } else {
+      where += " AND p.submolt = ?";
+      params.push(submolt.toLowerCase());
+    }
   }
   if (market) {
     where += " AND s.market = ?";
@@ -161,6 +205,7 @@ export async function getFeed(
     params.push(normalizedSymbol);
   }
   params.push(limit, offset);
+  const groupBy = submolt ? " GROUP BY p.id" : "";
   return queryAll(
     env,
     `SELECT p.id, p.title, p.content, p.url, p.submolt, p.post_type,
@@ -169,8 +214,9 @@ export async function getFeed(
             s.market as market, s.normalized_symbol as normalized_symbol
      FROM posts p
      JOIN agents a ON p.author_id = a.id
-     JOIN submolts s ON p.submolt_id = s.id
+     ${joinSubmolts}
      ${where}
+     ${groupBy}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
     ...params

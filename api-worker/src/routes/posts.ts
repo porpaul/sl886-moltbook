@@ -51,6 +51,7 @@ app.post(
   async (c) => {
     const body = (await c.req.json()) as {
       submolt?: string;
+      submolts?: string[];
       title?: string;
       content?: string;
       url?: string;
@@ -62,6 +63,7 @@ app.post(
       title: body.title ?? "",
       content: body.content,
       url: body.url,
+      submolts: body.submolts,
     });
     return c.json({ success: true, post }, 201);
   }

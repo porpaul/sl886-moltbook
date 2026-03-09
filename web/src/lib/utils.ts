@@ -184,8 +184,27 @@ export function getPostShareUrl(postId: string): string {
   return `${window.location.origin}${base}/post/${postId}`;
 }
 
+/** Base path for the app (e.g. /moltbook); use for raw hrefs in HTML (e.g. stock-tag links) so they work under basePath. */
+function getBasePath(): string {
+  return (typeof process !== 'undefined' && (process.env.NEXT_PUBLIC_BASE_PATH as string)) || '';
+}
+
 export function getSubmoltUrl(name: string): string {
   return `/m/${name}`;
+}
+
+/**
+ * Normalize a stock code to Moltbook submolt name (e.g. stock_hk_00100).
+ * Accepts "0100.HK", "0883.HK", "100", "06603", "06603.HK".
+ * Returns null if not a recognized HK code.
+ */
+export function stockCodeToSubmoltName(code: string): string | null {
+  const raw = String(code ?? '').trim().toUpperCase().replace(/\s/g, '');
+  const withoutSuffix = raw.replace(/\.HK$/, '');
+  const digits = withoutSuffix.replace(/^0+/, '') || '0';
+  if (!/^\d{1,5}$/.test(digits)) return null;
+  const fiveDigit = digits.padStart(5, '0');
+  return `stock_hk_${fiveDigit.toLowerCase()}`;
 }
 
 export function getAgentUrl(name: string): string {
@@ -214,4 +233,84 @@ export function isEscapeKey(event: KeyboardEvent | React.KeyboardEvent): boolean
 // Random string
 export function randomId(length: number = 8): string {
   return Math.random().toString(36).substring(2, 2 + length);
+}
+
+/** Normalize post/comment content so newlines display: turn literal backslash-n into real newlines. */
+export function normalizePostContent(content: string | null | undefined): string {
+  if (content == null || typeof content !== 'string') return '';
+  return content.replace(/\\n/g, '\n');
+}
+
+const STOCK_TAG_PLACEHOLDER = '%%STOCKLINK%%';
+
+/**
+ * Replace in-content stock tags $NAME(CODE)$ or $CODE$ with placeholders; returns text and link HTML array.
+ * Use so markdown (e.g. _italic_) does not corrupt underscores in /m/stock_hk_XXXXX hrefs.
+ */
+export function replaceStockTagsWithPlaceholders(text: string): { text: string; links: string[] } {
+  const links: string[] = [];
+  const out = text.replace(/\$([^$]+)\$/g, (_, inner) => {
+    const trimmed = inner.trim();
+    const parenMatch = trimmed.match(/^(.+?)\(([^)]+)\)\s*$/);
+    let code: string;
+    let display: string;
+    if (parenMatch) {
+      display = parenMatch[1].trim();
+      code = parenMatch[2].trim();
+    } else {
+      code = trimmed;
+      display = trimmed;
+    }
+    const submolt = stockCodeToSubmoltName(code);
+    if (!submolt) return `$${inner}$`;
+    const safeDisplay = display
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const base = getBasePath();
+    const href = base ? `${base}/m/${submolt}` : `/m/${submolt}`;
+    const html = `<a href="${href}" class="stock-tag">${safeDisplay}</a>`;
+    const idx = links.length;
+    links.push(html);
+    return STOCK_TAG_PLACEHOLDER + idx + STOCK_TAG_PLACEHOLDER;
+  });
+  return { text: out, links };
+}
+
+/**
+ * Substitute stock-tag placeholders (from replaceStockTagsWithPlaceholders) with link HTML.
+ */
+export function substituteStockTagPlaceholders(html: string, links: string[]): string {
+  if (links.length === 0) return html;
+  const re = new RegExp(STOCK_TAG_PLACEHOLDER + '(\\d+)' + STOCK_TAG_PLACEHOLDER, 'g');
+  return html.replace(re, (_, i) => links[parseInt(i, 10)] ?? '');
+}
+
+/**
+ * Replace in-content stock tags $NAME(CODE)$ or $CODE$ with <a> links to the stock channel.
+ * Use when markdown/italic will not run (e.g. comments). For post body use replaceStockTagsWithPlaceholders + substituteStockTagPlaceholders so underscores in href are not turned into <em>.
+ */
+export function replaceStockTagsInContent(text: string): string {
+  const { text: out, links } = replaceStockTagsWithPlaceholders(text);
+  return substituteStockTagPlaceholders(out, links);
+}
+
+/** Escape HTML for safe insertion. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Render comment content with newlines and in-content stock tags; safe for dangerouslySetInnerHTML.
+ */
+export function renderCommentContentWithStockTags(content: string | null | undefined): string {
+  if (content == null || typeof content !== 'string') return '';
+  const normalized = normalizePostContent(content);
+  const escaped = escapeHtml(normalized).replace(/\n/g, '<br />');
+  return replaceStockTagsInContent(escaped);
 }

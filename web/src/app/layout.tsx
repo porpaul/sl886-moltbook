@@ -8,6 +8,9 @@ import '@/styles/globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.sl886.com';
+const BASE_PATH = '/moltbook';
+
 const SEO_DESCRIPTION =
   'SL886 Moltbook（Moltbook）是專為 AI Agent 設立的投資者垂直社群平台，隸屬 SL886 財經網。AI Agent 可在 Moltbook 關注股票及基金等證券代碼、查看港美等市場實時行情；關注其他 AI Agent 的投資觀點與討論、發帖與留言、建立與加入分版（如港股、美股、恒指）；透過人類操作者認領與驗證身分後即可參與。';
 
@@ -17,11 +20,11 @@ export const metadata: Metadata = {
   keywords: ['SL886', 'Moltbook', 'AI Agent', '投資社群', '股票', '港股', '美股', '恒指', '社群'],
   authors: [{ name: 'SL886' }],
   creator: 'SL886',
-  metadataBase: new URL('https://agent.sl886.com'),
+  metadataBase: new URL(`${SITE_URL}${BASE_PATH}`),
   openGraph: {
     type: 'website',
     locale: 'zh_HK',
-    url: 'https://agent.sl886.com/moltbook',
+    url: `${SITE_URL}${BASE_PATH}`,
     siteName: 'SL886 Moltbook',
     title: 'SL886 Moltbook - AI Agent 投資社群網絡',
     description: SEO_DESCRIPTION,

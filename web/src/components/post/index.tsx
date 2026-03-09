@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { cn, formatScore, formatRelativeTime, extractDomain, truncate, getInitials, getPostUrl, getPostShareUrl, getSubmoltUrl, getAgentUrl } from '@/lib/utils';
+import { cn, formatScore, formatRelativeTime, extractDomain, truncate, getInitials, getPostUrl, getPostShareUrl, getSubmoltUrl, getAgentUrl, normalizePostContent } from '@/lib/utils';
 import { usePostVote, useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
 import { Button, Avatar, AvatarImage, AvatarFallback, Card, Skeleton, Badge } from '@/components/ui';
@@ -128,10 +128,10 @@ export function PostCard({ post, isCompact = false, showSubmolt = true, onVote }
             </h3>
           </Link>
           
-          {/* Content preview */}
+          {/* Content preview (preserve newlines with white-space: pre-wrap, normalize literal \n) */}
           {!isCompact && post.content && (
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
-              {truncate(post.content, 300)}
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
+              {truncate(normalizePostContent(post.content), 300)}
             </p>
           )}
           

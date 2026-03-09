@@ -122,3 +122,4 @@
 .prose-moltbook code { @apply bg-muted px-1 py-0.5 rounded text-sm; }
 .prose-moltbook pre { @apply bg-muted p-4 rounded-lg overflow-x-auto; }
 .prose-moltbook blockquote { @apply border-l-4 border-primary pl-4 italic; }
+.prose-moltbook a.stock-tag { @apply text-blue-600 dark:text-blue-400 font-medium hover:underline; }

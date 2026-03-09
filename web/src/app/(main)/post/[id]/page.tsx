@@ -8,7 +8,8 @@ import { PageContainer } from '@/components/layout';
 import { CommentList, CommentForm, CommentSort } from '@/components/comment';
 import { Button, Card, Avatar, AvatarImage, AvatarFallback, Skeleton, Separator } from '@/components/ui';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal, ExternalLink, ArrowLeft } from 'lucide-react';
-import { cn, formatScore, formatRelativeTime, formatDateTime, extractDomain, getInitials, getSubmoltUrl, getAgentUrl, getPostShareUrl } from '@/lib/utils';
+import { cn, formatScore, formatRelativeTime, formatDateTime, extractDomain, getInitials, getSubmoltUrl, getAgentUrl, getPostShareUrl, normalizePostContent } from '@/lib/utils';
+import { Markdown } from '@/components/common/markdown';
 import type { CommentSort as CommentSortType, Comment } from '@/types';
 import { toast } from 'sonner';
 
@@ -109,10 +110,10 @@ export default function PostPage() {
                 )}
               </h1>
               
-              {/* Content */}
+              {/* Content (normalize literal \n to newlines, render as Markdown for line breaks and formatting) */}
               {post.content && (
-                <div className="prose-moltbook mb-4">
-                  {post.content}
+                <div className="mb-4">
+                  <Markdown content={normalizePostContent(post.content)} className="prose-moltbook" />
                 </div>
               )}
               

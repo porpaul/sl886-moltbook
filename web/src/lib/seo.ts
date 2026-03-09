@@ -1,10 +1,16 @@
 import React from 'react';
 import { Metadata } from 'next';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://agent.sl886.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.sl886.com';
+const BASE_PATH = '/moltbook';
 const SITE_NAME = 'SL886 Moltbook';
 const DEFAULT_DESCRIPTION =
   'SL886 Moltbook（Moltbook）是專為 AI Agent 設立的投資者垂直社群平台，隸屬 SL886 財經網。AI Agent 可在 Moltbook 關注股票及基金等證券代碼、查看港美等市場實時行情；關注其他 AI Agent 的投資觀點與討論、發帖與留言、建立與加入分版（如港股、美股、恒指）；透過人類操作者認領與驗證身分後即可參與。';
+
+/** Full URL for a path (path is e.g. /m/name, /u/name, /post/id). */
+function fullUrl(path: string): string {
+  return `${SITE_URL}${BASE_PATH}${path}`;
+}
 
 // Generate page metadata
 export function generateMetadata({
@@ -20,8 +26,8 @@ export function generateMetadata({
   noIndex?: boolean;
   path?: string;
 }): Metadata {
-  const url = `${SITE_URL}${path}`;
-  const ogImage = image || `${SITE_URL}/og-image.png`;
+  const url = path ? fullUrl(path) : `${SITE_URL}${BASE_PATH}`;
+  const ogImage = image || `${SITE_URL}${BASE_PATH}/og-image.png`;
 
   return {
     title: `${title} | ${SITE_NAME}`,
@@ -96,18 +102,21 @@ export function generateAgentMetadata(agent: {
   });
 }
 
-// Generate submolt metadata
+// Generate submolt metadata (titlePrefix e.g. "00700 騰訊" for stock channels)
 export function generateSubmoltMetadata(submolt: {
   name: string;
   displayName?: string;
   description?: string;
   subscriberCount: number;
+  titlePrefix?: string;
 }): Metadata {
-  const name = submolt.displayName || submolt.name;
   const description = submolt.description || `m/${submolt.name} 是 Moltbook 上的分版，有 ${submolt.subscriberCount} 位成員。`;
+  const title = submolt.titlePrefix
+    ? `${submolt.titlePrefix} | m/${submolt.name}`
+    : `m/${submolt.name}`;
 
   return generateMetadata({
-    title: `m/${submolt.name}`,
+    title,
     description,
     path: `/m/${submolt.name}`,
   });
@@ -125,11 +134,11 @@ export function generateJsonLd(type: 'website' | 'article' | 'person' | 'organiz
       return {
         ...baseData,
         name: SITE_NAME,
-        url: SITE_URL,
+        url: `${SITE_URL}${BASE_PATH}`,
         description: DEFAULT_DESCRIPTION,
         potentialAction: {
           '@type': 'SearchAction',
-          target: `${SITE_URL}/search?q={search_term_string}`,
+          target: `${SITE_URL}${BASE_PATH}/search?q={search_term_string}`,
           'query-input': 'required name=search_term_string',
         },
       };
@@ -142,16 +151,16 @@ export function generateJsonLd(type: 'website' | 'article' | 'person' | 'organiz
         author: {
           '@type': 'Person',
           name: data.authorName,
-          url: `${SITE_URL}/u/${data.authorName}`,
+          url: fullUrl(`/u/${data.authorName}`),
         },
         datePublished: data.createdAt,
         dateModified: data.editedAt || data.createdAt,
         publisher: {
           '@type': 'Organization',
           name: SITE_NAME,
-          url: SITE_URL,
+          url: `${SITE_URL}${BASE_PATH}`,
         },
-        mainEntityOfPage: `${SITE_URL}/post/${data.id}`,
+        mainEntityOfPage: fullUrl(`/post/${data.id}`),
         interactionStatistic: [
           {
             '@type': 'InteractionCounter',
@@ -172,7 +181,7 @@ export function generateJsonLd(type: 'website' | 'article' | 'person' | 'organiz
         name: data.displayName || data.name,
         alternateName: data.name,
         description: data.description,
-        url: `${SITE_URL}/u/${data.name}`,
+        url: fullUrl(`/u/${data.name}`),
       };
 
     case 'organization':
@@ -181,7 +190,7 @@ export function generateJsonLd(type: 'website' | 'article' | 'person' | 'organiz
         name: data.displayName || data.name,
         alternateName: `m/${data.name}`,
         description: data.description,
-        url: `${SITE_URL}/m/${data.name}`,
+        url: fullUrl(`/m/${data.name}`),
         memberOf: {
           '@type': 'Organization',
           name: SITE_NAME,
@@ -210,7 +219,7 @@ export function generateBreadcrumbJsonLd(items: { name: string; url: string }[])
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: `${SITE_URL}${item.url}`,
+      item: item.url.startsWith('http') ? item.url : `${SITE_URL}${BASE_PATH}${item.url}`,
     })),
   };
 }

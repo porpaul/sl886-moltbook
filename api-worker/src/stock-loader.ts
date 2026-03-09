@@ -22,6 +22,7 @@ interface LoadResult {
   skipped: number;
   errors: number;
   deletedWrongHK?: number;
+  deletedManually?: number;
 }
 
 async function loadStocks(env: Env): Promise<LoadResult> {
@@ -169,10 +170,22 @@ export default {
           { status: 401, headers: { "Content-Type": "application/json" } }
         );
       }
+      let deletedManually = 0;
+      const deleteParam = url.searchParams.get("delete");
+      if (deleteParam && deleteParam.trim()) {
+        const names = deleteParam.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (names.length > 0) {
+          await batch(
+            env,
+            names.map((name) => ({ sql: "DELETE FROM submolts WHERE name = ?", params: [name] }))
+          );
+          deletedManually = names.length;
+        }
+      }
       try {
         const result = await loadStocks(env);
         return new Response(
-          JSON.stringify({ success: true, ...result }),
+          JSON.stringify({ success: true, deletedManually, ...result }),
           { headers: { "Content-Type": "application/json" } }
         );
       } catch (e) {
@@ -196,7 +209,7 @@ export default {
     }
 
     return new Response(
-      `${WORKER_NAME}\n\nEndpoints:\n  GET /trigger - Run load (optional: ?secret=... or X-Stock-Loader-Secret header)\n  GET /health - Health check`,
+      `${WORKER_NAME}\n\nEndpoints:\n  GET /trigger - Run load (optional: ?secret=... or X-Stock-Loader-Secret header; ?delete=name1,name2 to delete those submolts first)\n  GET /health - Health check`,
       { headers: { "Content-Type": "text/plain" } }
     );
   },

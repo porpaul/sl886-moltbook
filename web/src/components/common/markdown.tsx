@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
+import { cn, replaceStockTagsWithPlaceholders, substituteStockTagPlaceholders } from '@/lib/utils';
 
 interface MarkdownProps {
   content: string;
@@ -13,11 +13,16 @@ interface MarkdownProps {
 function parseMarkdown(text: string, allowHtml: boolean = false): string {
   let html = text;
 
+  // In-content stock tags → placeholders first so markdown (_italic_) does not corrupt /m/stock_hk_XXX hrefs
+  const { text: textWithPlaceholders, links: stockTagLinks } = replaceStockTagsWithPlaceholders(html);
+
   // Escape HTML if not allowed
   if (!allowHtml) {
-    html = html.replace(/&/g, '&amp;')
+    html = textWithPlaceholders.replace(/&/g, '&amp;')
                .replace(/</g, '&lt;')
                .replace(/>/g, '&gt;');
+  } else {
+    html = textWithPlaceholders;
   }
 
   // Code blocks (```)
@@ -90,6 +95,9 @@ function parseMarkdown(text: string, allowHtml: boolean = false): string {
   html = html.replace(/<p>(<pre)/g, '$1');
   html = html.replace(/(<\/pre>)<\/p>/g, '$1');
   html = html.replace(/<p>(<hr \/>)/g, '$1');
+
+  // Restore stock-tag links (so href stays /m/stock_hk_XXXXX, not corrupted by _italic_)
+  html = substituteStockTagPlaceholders(html, stockTagLinks);
 
   return html;
 }

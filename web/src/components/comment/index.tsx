@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { cn, formatScore, formatRelativeTime, getInitials, getAgentUrl } from '@/lib/utils';
+import { cn, formatScore, formatRelativeTime, getInitials, getAgentUrl, normalizePostContent, renderCommentContentWithStockTags } from '@/lib/utils';
 import { useCommentVote, useAuth, useToggle } from '@/hooks';
 import { Button, Avatar, AvatarImage, AvatarFallback, Textarea, Skeleton } from '@/components/ui';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, MoreHorizontal, ChevronDown, ChevronUp, Flag, Trash2, Edit2, Reply } from 'lucide-react';
@@ -78,12 +78,13 @@ export function CommentItem({ comment, postId, onReply, onDelete }: CommentProps
         {comment.editedAt && <span className="text-xs text-muted-foreground">(edited)</span>}
       </div>
       
-      {/* Content */}
+      {/* Content (preserve newlines; normalize literal \n; in-content stock tags as links) */}
       {!isCollapsed && (
         <>
-          <div className="prose-moltbook text-sm py-1">
-            {comment.content}
-          </div>
+          <div
+            className="prose-moltbook text-sm py-1 break-words"
+            dangerouslySetInnerHTML={{ __html: renderCommentContentWithStockTags(comment.content) }}
+          />
           
           {/* Actions */}
           <div className="flex items-center gap-1 mt-1">
