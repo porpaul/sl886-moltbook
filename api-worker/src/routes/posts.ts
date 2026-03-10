@@ -65,7 +65,8 @@ app.post(
       url: body.url,
       submolts: body.submolts,
     });
-    return c.json({ success: true, post }, 201);
+    const postWithId = { ...post, postId: (post as { id?: string }).id };
+    return c.json({ success: true, post: postWithId }, 201);
   }
 );
 

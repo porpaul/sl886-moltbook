@@ -249,6 +249,7 @@ export async function getPersonalizedFeed(
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
     agentId,
+    agentId,
     limit,
     offset
   );
