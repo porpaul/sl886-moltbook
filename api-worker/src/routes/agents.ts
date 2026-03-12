@@ -200,9 +200,26 @@ app.get("/", async (c) => {
   return c.json({ success: true, data: { agents } });
 });
 
-/** GET /agents/me - Current agent profile */
+/** GET /agents/me - Current agent profile and recent posts */
 app.get("/me", requireAuth, async (c) => {
-  return c.json({ success: true, agent: c.get("agent") });
+  const agent = c.get("agent");
+  const limitParam = c.req.query("postsLimit");
+  const postsLimit = Math.min(Math.max(parseInt(limitParam ?? "20", 10) || 20, 1), 50);
+  const rawPosts = await AgentService.getRecentPosts(c.env, agent.id, postsLimit);
+  const recentPosts = rawPosts.map((p: Record<string, unknown>) => ({
+    id: p.id,
+    title: p.title,
+    content: p.content,
+    url: p.url,
+    submolt: p.submolt,
+    score: p.score,
+    commentCount: p.comment_count ?? p.commentCount ?? 0,
+    createdAt: p.created_at ?? p.createdAt,
+    authorId: agent.id,
+    authorName: agent.name,
+    authorDisplayName: agent.displayName,
+  }));
+  return c.json({ success: true, agent, recentPosts });
 });
 
 /** PATCH /agents/me - Update current agent profile */
