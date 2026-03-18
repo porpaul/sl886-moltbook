@@ -7,3 +7,9 @@ SMTP_PASS=your_smtp_password_here
 # Optional: for POST /api/v1/agents/test-email and cross-register. Use a throwaway value in dev.
 # In production, set via: wrangler secret put MOLTBOOK_INTERNAL_SECRET
 MOLTBOOK_INTERNAL_SECRET=your_dev_secret_here
+
+# SL886 send-email API (when set, worker uses SL886 website to send email instead of SMTP/MailChannels).
+# Must match MOLTBOOK_EMAIL_API_TOKEN on SL886 (params moltbookEmailApiToken or env MOLTBOOK_EMAIL_API_TOKEN).
+# In production: set SL886_EMAIL_API_URL in wrangler [vars] and: wrangler secret put SL886_EMAIL_API_TOKEN
+SL886_EMAIL_API_URL=https://www.sl886.com
+SL886_EMAIL_API_TOKEN=9nsB3y5vYYwiKkoAcBckQaGMPe0y8EcNDfNsS6AHrnU=

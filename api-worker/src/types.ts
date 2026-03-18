@@ -24,4 +24,8 @@ export interface Env {
   SL886_STOCKS_URL?: string;
   /** Stock-loader worker: secret for authenticating to SL886 endpoint (wrangler secret put STOCK_LOADER_SECRET). */
   STOCK_LOADER_SECRET?: string;
+  /** Base URL of SL886 site for send-email API (e.g. https://www.sl886.com). When set with SL886_EMAIL_API_TOKEN, email is sent via SL886 instead of SMTP/MailChannels. */
+  SL886_EMAIL_API_URL?: string;
+  /** Token for SL886 send-email API (X-Moltbook-Email-Token or Bearer). Must match params moltbookEmailApiToken on SL886. */
+  SL886_EMAIL_API_TOKEN?: string;
 }

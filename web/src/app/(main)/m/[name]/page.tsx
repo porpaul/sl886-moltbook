@@ -27,7 +27,7 @@ function getStockPrettyName(market: string, symbol: string): string | null {
 export default function SubmoltPage() {
   const params = useParams<{ name: string }>();
   const searchParams = useSearchParams();
-  const sortParam = (searchParams.get('sort') as PostSort) || 'hot';
+  const sortParam = (searchParams.get('sort') as PostSort) || 'comments';
   
   const { data: submolt, isLoading: submoltLoading, error } = useSubmolt(params.name);
   const { isAuthenticated } = useAuth();

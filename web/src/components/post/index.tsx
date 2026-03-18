@@ -248,6 +248,7 @@ export function PostCardSkeleton() {
 // Feed Sort Tabs
 export function FeedSortTabs({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const tabs = [
+    { value: 'comments', label: 'Comments', icon: '💬' },
     { value: 'hot', label: 'Hot', icon: '🔥' },
     { value: 'new', label: 'New', icon: '✨' },
     { value: 'top', label: 'Top', icon: '📈' },

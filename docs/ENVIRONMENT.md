@@ -27,9 +27,9 @@ Reference for API Worker and Web (Moltbook) environment variables. **Do not comm
 | `MOLTBOOK_TOKEN_PREFIX` | Agent API token prefix | `sl886_agent_` |
 | `MOLTBOOK_CLAIM_PREFIX` | Claim token prefix in URLs | `moltbook_claim_` |
 | `MOLTBOOK_INTERNAL_SECRET` | Secret for internal routes (header `X-Internal-Secret`) | Set via secret in prod |
-| `SMTP_HOST` | SMTP host (if using SMTP) | e.g. `smtpout.asia.secureserver.net` |
-| `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` | SMTP username | e.g. `noreply@sl886.com` |
+| `SMTP_HOST` | SMTP host (if using SMTP fallback) | e.g. `smtpdm-ap-southeast-1.aliyun.com` |
+| `SMTP_PORT` | SMTP port | `465` (SSL) |
+| `SMTP_USER` | SMTP username | e.g. `no-reply@mail.sl886.com` |
 
 ### Secrets (use `wrangler secret put` in production)
 

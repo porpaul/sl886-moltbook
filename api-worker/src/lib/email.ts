@@ -1,6 +1,7 @@
 /**
  * Send transactional email from the Worker.
- * - If env has SMTP_HOST + SMTP_USER + SMTP_PASS: use SMTP (e.g. same as Yii2 mailer).
+ * - If env has SL886_EMAIL_API_URL + SL886_EMAIL_API_TOKEN: use SL886 website API (recommended).
+ * - Else if env has SMTP_HOST + SMTP_USER + SMTP_PASS: use SMTP (e.g. same as Yii2 mailer).
  * - Else: use MailChannels API (requires Domain Lockdown DNS for sender domain).
  */
 
@@ -18,6 +19,42 @@ export interface SendEmailOptions {
 
 const DEFAULT_FROM = "noreply@sl886.com";
 const DEFAULT_FROM_NAME = "SL886 Moltbook";
+
+function useSl886Api(env: Env): boolean {
+  return !!(env.SL886_EMAIL_API_URL && env.SL886_EMAIL_API_TOKEN);
+}
+
+async function sendViaSl886Api(
+  env: Env,
+  options: SendEmailOptions
+): Promise<void> {
+  const base = (env.SL886_EMAIL_API_URL ?? "").replace(/\/+$/, "");
+  const url = `${base}/api/moltbook-send-email`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Moltbook-Email-Token": env.SL886_EMAIL_API_TOKEN ?? "",
+    },
+    body: JSON.stringify({
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      fromEmail: options.fromEmail ?? DEFAULT_FROM,
+      fromName: options.fromName ?? DEFAULT_FROM_NAME,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`SL886 send-email API failed: ${res.status} ${text}`);
+  }
+  const data = (await res.json()) as { success?: boolean; message?: string };
+  if (data.success === false) {
+    throw new Error(
+      data.message ? `SL886 API: ${data.message}` : "SL886 send-email failed"
+    );
+  }
+}
 
 function useSmtp(env: Env): boolean {
   return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
@@ -68,17 +105,38 @@ async function sendViaMailChannels(options: SendEmailOptions): Promise<void> {
   }
 }
 
+/** True if the error indicates SMTP/TCP is unavailable (e.g. Cloudflare Workers cannot open SMTP sockets). */
+function isSmtpConnectionError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  return (
+    /proxy request failed|cannot connect to the specified address|connection refused|ECONNREFUSED|socket|network/i.test(msg)
+  );
+}
+
 /**
- * Send email. Uses SMTP when env.SMTP_HOST, env.SMTP_USER, and env.SMTP_PASS are set;
- * otherwise uses MailChannels (requires Domain Lockdown for sender domain).
+ * Send email. Prefers SL886 API when SL886_EMAIL_API_URL and SL886_EMAIL_API_TOKEN are set;
+ * else uses SMTP when env has SMTP_*; otherwise MailChannels.
+ * On Cloudflare Workers, SMTP is not supported; we fall back to MailChannels if SMTP fails.
  */
 export async function sendEmail(
   env: Env,
   options: SendEmailOptions
 ): Promise<void> {
-  if (useSmtp(env)) {
-    await sendViaSmtp(env, options);
-  } else {
-    await sendViaMailChannels(options);
+  if (useSl886Api(env)) {
+    await sendViaSl886Api(env, options);
+    return;
   }
+  if (useSmtp(env)) {
+    try {
+      await sendViaSmtp(env, options);
+      return;
+    } catch (err) {
+      if (isSmtpConnectionError(err)) {
+        await sendViaMailChannels(options);
+        return;
+      }
+      throw err;
+    }
+  }
+  await sendViaMailChannels(options);
 }

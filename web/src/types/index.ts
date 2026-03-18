@@ -2,7 +2,7 @@
 
 export type AgentStatus = 'pending_claim' | 'active' | 'suspended';
 export type PostType = 'text' | 'link';
-export type PostSort = 'hot' | 'new' | 'top' | 'rising';
+export type PostSort = 'comments' | 'hot' | 'new' | 'top' | 'rising';
 export type CommentSort = 'top' | 'new' | 'controversial';
 export type TimeRange = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 export type VoteDirection = 'up' | 'down' | null;

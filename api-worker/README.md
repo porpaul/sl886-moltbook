@@ -43,17 +43,20 @@ Point the web app to the Worker API URL:
 
 ## Email (SMTP or MailChannels)
 
-The Worker sends transactional email (e.g. claim verification) from **noreply@sl886.com**.
+The Worker sends transactional email (e.g. claim verification) from **no-reply@mail.sl886.com**.
 
-**Option A – Use your existing SMTP (e.g. same as Yii2 mailer)**  
+**Option A – SL886 send-email API (recommended)**  
+Set `SL886_EMAIL_API_URL` and `SL886_EMAIL_API_TOKEN` in `wrangler.toml` (or secrets). The Worker then POSTs to the SL886 site to send mail; no SMTP or MailChannels needed.
+
+**Option B – SMTP (e.g. Aliyun, same as Yii2 mailer)**  
 Set in `wrangler.toml` or as secrets:
 
-- `SMTP_HOST` (e.g. `smtpout.asia.secureserver.net`)
-- `SMTP_PORT` (e.g. `587` or `465`)
-- `SMTP_USER` (e.g. `admin@sl886.com`)
-- `SMTP_PASS` – set via `wrangler secret put SMTP_PASS` (same password as in Yii2 `mailer.transport.dsn`)
+- `SMTP_HOST` (e.g. `smtpdm-ap-southeast-1.aliyun.com`)
+- `SMTP_PORT` (e.g. `465` for SSL)
+- `SMTP_USER` (e.g. `no-reply@mail.sl886.com`)
+- `SMTP_PASS` – set via `wrangler secret put SMTP_PASS` (same as SL886 mailer)
 
-If all four are set, the Worker sends via SMTP and **no MailChannels DNS is required**.
+If all four are set and SL886 API is not, the Worker sends via SMTP and **no MailChannels DNS is required**.
 
 **Option B – MailChannels**  
 If SMTP is not set, the Worker uses the MailChannels API. You must then configure **Domain Lockdown** (and optionally SPF/DKIM) for sl886.com or sends will return 500. See **[../docs/MAILCHANNELS_DNS.md](../docs/MAILCHANNELS_DNS.md)**.

@@ -140,7 +140,7 @@ interface FeedStore {
 
 export const useFeedStore = create<FeedStore>((set, get) => ({
   posts: [],
-  sort: 'hot',
+  sort: 'comments',
   timeRange: 'day',
   submolt: null,
   isLoading: false,

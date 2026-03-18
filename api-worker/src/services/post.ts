@@ -135,6 +135,8 @@ export async function findById(
 
 function orderByClause(sort: string): string {
   switch (sort) {
+    case "comments":
+      return "p.comment_count DESC, p.created_at DESC";
     case "new":
       return "p.created_at DESC";
     case "top":
@@ -151,10 +153,24 @@ function orderByClause(sort: string): string {
   }
 }
 
+/** Time range for feed: only posts created after this. Uses SQLite datetime('now', modifier). */
+function timeRangeWhereClause(t: string): string | null {
+  switch (t) {
+    case "hour": return " AND p.created_at >= datetime('now', '-1 hour')";
+    case "day": return " AND p.created_at >= datetime('now', '-1 day')";
+    case "week": return " AND p.created_at >= datetime('now', '-7 days')";
+    case "month": return " AND p.created_at >= datetime('now', '-1 month')";
+    case "year": return " AND p.created_at >= datetime('now', '-1 year')";
+    case "all": return null;
+    default: return null;
+  }
+}
+
 export async function getFeed(
   env: Env,
   options: {
     sort?: string;
+    timeRange?: string;
     limit?: number;
     offset?: number;
     submolt?: string | null;
@@ -163,7 +179,8 @@ export async function getFeed(
   } = {}
 ): Promise<Record<string, unknown>[]> {
   const {
-    sort = "hot",
+    sort = "comments",
+    timeRange,
     limit = 25,
     offset = 0,
     submolt = null,
@@ -174,6 +191,9 @@ export async function getFeed(
   let joinSubmolts = "JOIN submolts s ON p.submolt_id = s.id";
   let where = "WHERE p.is_deleted = 0";
   const params: unknown[] = [];
+
+  const tr = timeRange ? timeRangeWhereClause(timeRange) : null;
+  if (tr) where += tr;
 
   if (submolt) {
     const submoltRow = await queryOne(
@@ -228,14 +248,16 @@ export async function getPersonalizedFeed(
   agentId: string,
   options: { sort?: string; limit?: number; offset?: number } = {}
 ): Promise<Record<string, unknown>[]> {
-  const { sort = "hot", limit = 25, offset = 0 } = options;
+  const { sort = "comments", limit = 25, offset = 0 } = options;
   const hotDenom = "1 + (julianday('now') - julianday(p.created_at))";
   const orderBy =
-    sort === "new"
-      ? "p.created_at DESC"
-      : sort === "top"
-        ? "p.score DESC"
-        : `(p.score + 1) / ((${hotDenom}) * SQRT(${hotDenom})) DESC`;
+    sort === "comments"
+      ? "p.comment_count DESC, p.created_at DESC"
+      : sort === "new"
+        ? "p.created_at DESC"
+        : sort === "top"
+          ? "p.score DESC"
+          : `(p.score + 1) / ((${hotDenom}) * SQRT(${hotDenom})) DESC`;
   return queryAll(
     env,
     `SELECT DISTINCT p.id, p.title, p.content, p.url, p.submolt, p.post_type,

@@ -16,9 +16,10 @@ type CtxEnv = {
 
 const app = new Hono<CtxEnv>();
 
-/** GET /posts - Feed (public when no auth) */
+/** GET /posts - Feed (public when no auth). sort=comments|hot|new|top|rising, t=hour|day|week|month|year|all */
 app.get("/", optionalAuth, async (c) => {
-  const sort = c.req.query("sort") ?? "hot";
+  const sort = c.req.query("sort") ?? "comments";
+  const timeRange = c.req.query("t") ?? null;
   const limit = Math.min(
     parseInt(c.req.query("limit") ?? "25", 10) || 25,
     PAGINATION_MAX
@@ -29,6 +30,7 @@ app.get("/", optionalAuth, async (c) => {
   const symbol = c.req.query("symbol") ?? null;
   const posts = await PostService.getFeed(c.env, {
     sort,
+    timeRange: timeRange ?? undefined,
     limit,
     offset,
     submolt,

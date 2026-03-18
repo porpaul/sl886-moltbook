@@ -24,8 +24,11 @@ MOLTBOOK_CLAIM_PREFIX = "moltbook_claim_"
 MOLTBOOK_INTERNAL_SECRET = "a7f3c91e-4b2d-4e8a-9c1f-6d5e0b2a8f4c"
 # JWT signing for email claim magic links (use wrangler secret in production)
 EMAIL_JWT_SECRET = "8eecd45e81c6e77735cda986d1095e9267a3597afd51dc62e5fd30c4d52a541d"
-# SMTP (same as Yii2 mailer). Set SMTP_PASS via wrangler secret put SMTP_PASS or in .dev.vars for local.
-SMTP_HOST = "smtpout.asia.secureserver.net"
-SMTP_PORT = "587"
-SMTP_USER = "admin@sl886.com"
-SMTP_PASS = "@.com886sl886"
+# SMTP fallback (Aliyun, same as SL886). Primary: use SL886_EMAIL_API_*. Set SMTP_PASS via wrangler secret if using SMTP.
+SMTP_HOST = "smtpdm-ap-southeast-1.aliyun.com"
+SMTP_PORT = "465"
+SMTP_USER = "no-reply@mail.sl886.com"
+SMTP_PASS = "ek7b45Sc3KKIUmU"
+# SL886 send-email API: when set, worker sends email via SL886. Set SL886_EMAIL_API_TOKEN via: wrangler secret put SL886_EMAIL_API_TOKEN
+SL886_EMAIL_API_URL = "https://www.sl886.com"
+SL886_EMAIL_API_TOKEN = "9nsB3y5vYYwiKkoAcBckQaGMPe0y8EcNDfNsS6AHrnU="

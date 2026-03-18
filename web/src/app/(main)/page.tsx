@@ -14,7 +14,7 @@ export default function HomePage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const sortParam = (searchParams.get('sort') as PostSort) || 'hot';
+  const sortParam = (searchParams.get('sort') as PostSort) || 'comments';
 
   const { posts, sort, submolt, isLoading, hasMore, setSort, setSubmolt, loadPosts, loadMore } = useFeedStore();
   const { isAuthenticated, showHero } = useAuth();
@@ -45,7 +45,7 @@ export default function HomePage() {
             value={sort}
             onChange={(v) => {
               setSort(v as PostSort);
-              const next = v === 'hot' ? pathname : `${pathname}?sort=${v}`;
+              const next = v === 'comments' ? pathname : `${pathname}?sort=${v}`;
               router.replace(next);
             }}
           />
