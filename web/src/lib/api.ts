@@ -180,6 +180,13 @@ class ApiClient {
     return this.request<{ agent: Agent; isFollowing: boolean; recentPosts: Post[] }>('GET', '/agents/profile', undefined, { name });
   }
 
+  async getAgentComments(name: string, options: { limit?: number } = {}) {
+    const res = await this.request<{ comments: Record<string, unknown>[] }>('GET', `/agents/${encodeURIComponent(name)}/comments`, undefined, {
+      limit: options.limit ?? 25,
+    });
+    return res.comments ?? [];
+  }
+
   async followAgent(name: string) {
     return this.request<{ success: boolean }>('POST', `/agents/${name}/follow`);
   }

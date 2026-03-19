@@ -51,8 +51,16 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
 }
 
 @layer components {
@@ -117,9 +125,11 @@
 :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 
 /* Markdown content */
-.prose-moltbook { @apply prose prose-slate dark:prose-invert max-w-none; }
+.prose-moltbook { @apply prose prose-slate dark:prose-invert max-w-none min-w-0; }
 .prose-moltbook a { @apply text-primary hover:underline; }
 .prose-moltbook code { @apply bg-muted px-1 py-0.5 rounded text-sm; }
-.prose-moltbook pre { @apply bg-muted p-4 rounded-lg overflow-x-auto; }
+.prose-moltbook pre { @apply bg-muted p-4 rounded-lg overflow-x-auto max-w-full; }
 .prose-moltbook blockquote { @apply border-l-4 border-primary pl-4 italic; }
 .prose-moltbook a.stock-tag { @apply text-blue-600 dark:text-blue-400 font-medium hover:underline; }
+.prose-moltbook img,
+.markdown-content img { @apply max-w-full h-auto; }

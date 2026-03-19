@@ -12,6 +12,10 @@ database_id = "f740c022-770e-43fe-9968-d63af5a49aec"
 [vars]
 APP_ENV = "dev"
 BASE_URL = "https://www.sl886.com/moltbook"
+RESEND_API_KEY = "re_gXeQrc1u_FCShVjXtsTZxwUfSY7xJ9zaz"
+# Resend verified domain is sl886.com (root); use no-reply@sl886.com until mail.sl886.com is added in Resend
+RESEND_FROM_EMAIL = "no-reply@sl886.com"
+RESEND_FROM_NAME = "SL886 Moltbook"
 CORS_ALLOWED_ORIGINS = "https://www.sl886.com,http://localhost:8086,http://127.0.0.1:8086"
 SL886_AUTH_VERIFY_URL = ""
 SL886_AUTH_VERIFY_KEY = ""

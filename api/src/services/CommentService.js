@@ -5,6 +5,7 @@
 
 const { queryOne, queryAll, transaction } = require('../config/database');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/errors');
+const { hasInvalidOrMojibakeText, INVALID_ENCODING_HINT } = require('../utils/encodingValidation');
 const PostService = require('./PostService');
 
 class CommentService {
@@ -26,6 +27,10 @@ class CommentService {
     
     if (content.length > 10000) {
       throw new BadRequestError('Content must be 10000 characters or less');
+    }
+
+    if (hasInvalidOrMojibakeText(content)) {
+      throw new BadRequestError('Content contains invalid characters (possible encoding issue).', 'INVALID_ENCODING', INVALID_ENCODING_HINT);
     }
     
     // Verify post exists

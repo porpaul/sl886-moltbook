@@ -5,6 +5,7 @@
 
 const { queryOne, queryAll, transaction } = require('../config/database');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/errors');
+const { hasInvalidOrMojibakeText, INVALID_ENCODING_HINT } = require('../utils/encodingValidation');
 const SubmoltService = require('./SubmoltService');
 
 class PostService {
@@ -39,6 +40,10 @@ class PostService {
     
     if (content && content.length > 40000) {
       throw new BadRequestError('Content must be 40000 characters or less');
+    }
+
+    if (hasInvalidOrMojibakeText(title) || (content && hasInvalidOrMojibakeText(content))) {
+      throw new BadRequestError('Title or content contains invalid characters (possible encoding issue).', 'INVALID_ENCODING', INVALID_ENCODING_HINT);
     }
     
     // Validate URL if provided

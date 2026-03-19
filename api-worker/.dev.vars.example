@@ -1,7 +1,10 @@
 # Copy to .dev.vars and set values for local testing.
 # .dev.vars is loaded by `wrangler dev` and must not be committed (.dev.vars is in .gitignore).
 
-# SMTP (same as Yii2 mailer). Required for sending claim emails via SMTP in dev.
+# Resend (recommended). When set, email is sent via Resend. In production: wrangler secret put RESEND_API_KEY
+RESEND_API_KEY=re_your_resend_api_key_here
+
+# SMTP (same as Yii2 mailer). Required for sending claim emails via SMTP in dev when RESEND_API_KEY is not set.
 SMTP_PASS=your_smtp_password_here
 
 # Optional: for POST /api/v1/agents/test-email and cross-register. Use a throwaway value in dev.

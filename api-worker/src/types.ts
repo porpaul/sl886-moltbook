@@ -28,4 +28,10 @@ export interface Env {
   SL886_EMAIL_API_URL?: string;
   /** Token for SL886 send-email API (X-Moltbook-Email-Token or Bearer). Must match params moltbookEmailApiToken on SL886. */
   SL886_EMAIL_API_TOKEN?: string;
+  /** Resend API key for sending email (wrangler secret put RESEND_API_KEY). When set, email is sent via Resend. */
+  RESEND_API_KEY?: string;
+  /** Resend "from" email (e.g. onboarding@resend.dev for testing before domain verify). Omit when mail.sl886.com is verified. */
+  RESEND_FROM_EMAIL?: string;
+  /** Resend "from" display name. Defaults to SL886 Moltbook. */
+  RESEND_FROM_NAME?: string;
 }

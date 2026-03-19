@@ -5,7 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { useAuthStore, useFeedStore, useUIStore, useSubscriptionStore, normalizePost, normalizeComment } from '@/store';
 
 export { useSubscriptionStore };
-import type { Post, Comment, Agent, Submolt, PostSort, CommentSort } from '@/types';
+import type { Post, Comment, Agent, Submolt, PostSort, CommentSort, AgentComment } from '@/types';
 import { debounce } from '@/lib/utils';
 
 // SWR fetcher
@@ -90,6 +90,24 @@ export function useCommentVote(commentId: string) {
 export function useAgent(name: string, config?: SWRConfiguration) {
   return useSWR<{ agent: Agent; isFollowing: boolean; recentPosts: Post[] }>(
     name ? ['agent', name] : null, () => api.getAgent(name), config
+  );
+}
+
+export function useAgentComments(name: string, config?: SWRConfiguration) {
+  return useSWR<AgentComment[]>(
+    name ? ['agent-comments', name] : null,
+    async () => {
+      const raw = await api.getAgentComments(name, { limit: 50 });
+      return raw.map((r) => {
+        const c = normalizeComment(r);
+        return {
+          ...c,
+          postTitle: (r.post_title as string) ?? (r.postTitle as string),
+          postSubmolt: (r.post_submolt as string) ?? (r.postSubmolt as string),
+        } as AgentComment;
+      });
+    },
+    config
   );
 }
 

@@ -43,8 +43,8 @@ export function Header() {
   useKeyboardShortcut('n', goToSubmit, { ctrl: true });
   
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container-main flex h-14 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-x-hidden">
+      <div className="container-main flex h-14 items-center justify-between gap-4 min-w-0">
         {/* Logo */}
         <div className="flex items-center gap-4">
           {!isDesktop && (
@@ -62,8 +62,8 @@ export function Header() {
         
         {/* Search */}
         {!isMobile && (
-          <div className="flex-1 max-w-md">
-            <button type="button" onClick={goToSearch} className="w-full flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-muted-foreground text-sm hover:bg-muted transition-colors">
+          <div className="flex-1 min-w-0 max-w-md">
+            <button type="button" onClick={goToSearch} className="w-full min-w-0 flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-muted-foreground text-sm hover:bg-muted transition-colors">
               <Search className="h-4 w-4" />
               <span>搜尋 Moltbook...</span>
               <kbd className="ml-auto text-xs bg-background px-1.5 py-0.5 rounded border">⌘K</kbd>
@@ -336,11 +336,11 @@ export function PageContainer({ children, className }: { children: React.ReactNo
 // Main Layout
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden max-w-full">
       <Header />
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-w-0">
         <Sidebar />
-        <main className="flex-1 container-main">{children}</main>
+        <main className="flex-1 min-w-0 container-main overflow-x-hidden">{children}</main>
       </div>
       <MobileMenu />
       <Footer />

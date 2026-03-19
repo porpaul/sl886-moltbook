@@ -1,6 +1,7 @@
 import type { Env } from "../types";
 import { queryOne, queryAll } from "../lib/db";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../lib/errors";
+import { hasInvalidOrMojibakeText, INVALID_ENCODING_HINT } from "../lib/encodingValidation";
 import { incrementCommentCount } from "./post";
 
 export async function create(
@@ -17,6 +18,13 @@ export async function create(
   }
   if (data.content.length > 10000) {
     throw new BadRequestError("Content must be 10000 characters or less");
+  }
+  if (hasInvalidOrMojibakeText(data.content)) {
+    throw new BadRequestError(
+      "Content contains invalid characters (possible encoding issue).",
+      "INVALID_ENCODING",
+      INVALID_ENCODING_HINT
+    );
   }
 
   const post = await queryOne(
@@ -174,4 +182,28 @@ export async function updateScore(
     commentId
   );
   return Number((result as { score: number } | null)?.score ?? 0);
+}
+
+/** Get recent comments by author (for profile "留言" tab). Returns flat list with post context. */
+export async function getByAuthorId(
+  env: Env,
+  authorId: string,
+  options: { limit?: number } = {}
+): Promise<Record<string, unknown>[]> {
+  const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
+  const rows = await queryAll(
+    env,
+    `SELECT c.id, c.post_id, c.content, c.score, c.depth, c.parent_id, c.created_at,
+            a.name as author_name, a.display_name as author_display_name,
+            p.title as post_title, p.submolt as post_submolt
+     FROM comments c
+     JOIN agents a ON c.author_id = a.id
+     JOIN posts p ON c.post_id = p.id
+     WHERE c.author_id = ? AND (c.is_deleted IS NULL OR c.is_deleted = 0)
+     ORDER BY c.created_at DESC
+     LIMIT ?`,
+    authorId,
+    limit
+  );
+  return rows as Record<string, unknown>[];
 }

@@ -5,6 +5,7 @@ import type { HumanIdentity } from "../lib/human-auth";
 import { requireAuth, optionalAuth, requireClaimed } from "../middleware/auth";
 import { requireHumanAuth } from "../lib/human-auth";
 import * as AgentService from "../services/agent";
+import * as CommentService from "../services/comment";
 import { sendEmail } from "../lib/email";
 import { NotFoundError, UnauthorizedError } from "../lib/errors";
 
@@ -72,7 +73,13 @@ app.post("/test-email", async (c) => {
   if (!to) {
     return c.json({ success: false, error: "Missing body.to (recipient email)" }, 400);
   }
-  const transport = c.env.SMTP_HOST && c.env.SMTP_USER && c.env.SMTP_PASS ? "SMTP" : "MailChannels";
+  const transport = c.env.RESEND_API_KEY
+    ? "Resend"
+    : c.env.SL886_EMAIL_API_URL && c.env.SL886_EMAIL_API_TOKEN
+      ? "SL886 API"
+      : c.env.SMTP_HOST && c.env.SMTP_USER && c.env.SMTP_PASS
+        ? "SMTP"
+        : "MailChannels";
   await sendEmail(c.env, {
     to,
     subject: "SL886 Moltbook – test email",
@@ -282,6 +289,18 @@ app.get("/profile", optionalAuth, async (c) => {
     isFollowing,
     recentPosts,
   });
+});
+
+/** GET /agents/:name/comments - Recent comments by this agent (for profile 留言 tab). Public. */
+app.get("/:name/comments", async (c) => {
+  const name = c.req.param("name");
+  const limitParam = c.req.query("limit");
+  const limit = Math.min(Math.max(parseInt(limitParam ?? "25", 10) || 25, 1), 100);
+  const agent = await AgentService.findByName(c.env, name);
+  if (!agent) throw new NotFoundError("Agent");
+  const a = agent as { id: string };
+  const comments = await CommentService.getByAuthorId(c.env, a.id, { limit });
+  return c.json({ success: true, comments });
 });
 
 /** POST /agents/:name/follow */

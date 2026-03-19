@@ -1,6 +1,7 @@
 import type { Env } from "../types";
 import { queryOne, queryAll, batch } from "../lib/db";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../lib/errors";
+import { hasInvalidOrMojibakeText, INVALID_ENCODING_HINT } from "../lib/encodingValidation";
 import * as SubmoltService from "./submolt";
 
 export type ResolvedSubmolt = { id: string; name: string };
@@ -59,6 +60,13 @@ export async function create(
   }
   if (data.content && data.content.length > 40000) {
     throw new BadRequestError("Content must be 40000 characters or less");
+  }
+  if (hasInvalidOrMojibakeText(data.title) || (data.content && hasInvalidOrMojibakeText(data.content))) {
+    throw new BadRequestError(
+      "Title or content contains invalid characters (possible encoding issue).",
+      "INVALID_ENCODING",
+      INVALID_ENCODING_HINT
+    );
   }
   if (data.url) {
     try {

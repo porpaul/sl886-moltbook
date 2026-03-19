@@ -1,10 +1,12 @@
 /**
  * Send transactional email from the Worker.
- * - If env has SL886_EMAIL_API_URL + SL886_EMAIL_API_TOKEN: use SL886 website API (recommended).
+ * - If env has RESEND_API_KEY: use Resend (recommended).
+ * - Else if env has SL886_EMAIL_API_URL + SL886_EMAIL_API_TOKEN: use SL886 website API.
  * - Else if env has SMTP_HOST + SMTP_USER + SMTP_PASS: use SMTP (e.g. same as Yii2 mailer).
  * - Else: use MailChannels API (requires Domain Lockdown DNS for sender domain).
  */
 
+import { Resend } from "resend";
 import type { Env } from "../types";
 
 const MAILCHANNELS_API = "https://api.mailchannels.net/tx/v1/send";
@@ -17,8 +19,38 @@ export interface SendEmailOptions {
   fromName?: string;
 }
 
-const DEFAULT_FROM = "noreply@sl886.com";
+/** Must match SL886/Aliyun auth (no-reply@mail.sl886.com). */
+const DEFAULT_FROM = "no-reply@mail.sl886.com";
 const DEFAULT_FROM_NAME = "SL886 Moltbook";
+
+function useResend(env: Env): boolean {
+  return !!env.RESEND_API_KEY;
+}
+
+async function sendViaResend(
+  env: Env,
+  options: SendEmailOptions
+): Promise<void> {
+  const apiKey = env.RESEND_API_KEY!;
+  const resend = new Resend(apiKey);
+  const fromEmail = options.fromEmail ?? env.RESEND_FROM_EMAIL ?? DEFAULT_FROM;
+  const fromName = options.fromName ?? env.RESEND_FROM_NAME ?? DEFAULT_FROM_NAME;
+  const from = `${fromName} <${fromEmail}>`;
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to: [options.to],
+    subject: options.subject,
+    text: options.text,
+  });
+
+  if (error) {
+    throw new Error(`Resend send failed: ${error.message}`);
+  }
+  if (!data?.id) {
+    throw new Error("Resend send returned no id");
+  }
+}
 
 function useSl886Api(env: Env): boolean {
   return !!(env.SL886_EMAIL_API_URL && env.SL886_EMAIL_API_TOKEN);
@@ -33,7 +65,9 @@ async function sendViaSl886Api(
   const res = await fetch(url, {
     method: "POST",
     headers: {
+      "Accept": "application/json",
       "Content-Type": "application/json",
+      "User-Agent": "MoltbookApiWorker/1.0",
       "X-Moltbook-Email-Token": env.SL886_EMAIL_API_TOKEN ?? "",
     },
     body: JSON.stringify({
@@ -44,11 +78,22 @@ async function sendViaSl886Api(
       fromName: options.fromName ?? DEFAULT_FROM_NAME,
     }),
   });
+  const text = await res.text();
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`SL886 send-email API failed: ${res.status} ${text}`);
+    throw new Error(`SL886 send-email API failed: ${res.status} ${text.slice(0, 200)}`);
   }
-  const data = (await res.json()) as { success?: boolean; message?: string };
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{")) {
+    throw new Error(
+      `SL886 API returned non-JSON (e.g. HTML): ${res.status} ${trimmed.slice(0, 120)}`
+    );
+  }
+  let data: { success?: boolean; message?: string };
+  try {
+    data = JSON.parse(trimmed) as { success?: boolean; message?: string };
+  } catch {
+    throw new Error(`SL886 API invalid JSON: ${trimmed.slice(0, 120)}`);
+  }
   if (data.success === false) {
     throw new Error(
       data.message ? `SL886 API: ${data.message}` : "SL886 send-email failed"
@@ -114,14 +159,17 @@ function isSmtpConnectionError(err: unknown): boolean {
 }
 
 /**
- * Send email. Prefers SL886 API when SL886_EMAIL_API_URL and SL886_EMAIL_API_TOKEN are set;
- * else uses SMTP when env has SMTP_*; otherwise MailChannels.
+ * Send email. Prefers Resend when RESEND_API_KEY is set; then SL886 API; then SMTP; else MailChannels.
  * On Cloudflare Workers, SMTP is not supported; we fall back to MailChannels if SMTP fails.
  */
 export async function sendEmail(
   env: Env,
   options: SendEmailOptions
 ): Promise<void> {
+  if (useResend(env)) {
+    await sendViaResend(env, options);
+    return;
+  }
   if (useSl886Api(env)) {
     await sendViaSl886Api(env, options);
     return;

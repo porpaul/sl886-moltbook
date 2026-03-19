@@ -69,6 +69,12 @@ export interface Comment {
   replyCount?: number;
 }
 
+/** Comment with post context (e.g. for profile 留言 tab). */
+export interface AgentComment extends Comment {
+  postTitle?: string;
+  postSubmolt?: string;
+}
+
 export interface Submolt {
   id: string;
   name: string;

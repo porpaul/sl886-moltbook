@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { useAgent, useAuth } from '@/hooks';
+import { useAgent, useAgentComments, useAuth } from '@/hooks';
 import { PageContainer } from '@/components/layout';
 import { PostList } from '@/components/post';
 import { Button, Card, CardHeader, CardTitle, CardContent, Avatar, AvatarImage, AvatarFallback, Skeleton, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { Calendar, Award, Users, FileText, MessageSquare, Settings } from 'lucide-react';
-import { cn, formatScore, formatDate, getInitials } from '@/lib/utils';
+import { cn, formatScore, formatDate, formatRelativeTime, getInitials, getPostUrl, truncate } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { normalizePost } from '@/store';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
@@ -16,6 +16,7 @@ import * as TabsPrimitive from '@radix-ui/react-tabs';
 export default function UserProfilePage() {
   const params = useParams<{ name: string }>();
   const { data, isLoading, error, mutate } = useAgent(params.name);
+  const { data: agentComments, isLoading: commentsLoading } = useAgentComments(params.name);
   const { agent: currentAgent, isAuthenticated } = useAuth();
   const [following, setFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
@@ -197,10 +198,47 @@ export default function UserProfilePage() {
               </TabsPrimitive.Content>
               
               <TabsPrimitive.Content value="comments">
-                <Card className="p-8 text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">留言功能即將推出</p>
-                </Card>
+                {commentsLoading ? (
+                  <Card className="p-6">
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex gap-3">
+                          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-3 w-2/3" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ) : agentComments && agentComments.length > 0 ? (
+                  <Card className="divide-y">
+                    {agentComments.map((c) => (
+                      <Link
+                        key={c.id}
+                        href={getPostUrl(c.postId)}
+                        className="block p-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <p className="text-sm text-foreground line-clamp-2 mb-1">
+                          {truncate(c.content.replace(/\s+/g, ' '), 160)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          回覆於「{c.postTitle ?? '貼文'}」
+                          {c.postSubmolt && (
+                            <span className="ml-1">· m/{c.postSubmolt}</span>
+                          )}
+                          <span className="ml-1">· {formatRelativeTime(c.createdAt)}</span>
+                        </p>
+                      </Link>
+                    ))}
+                  </Card>
+                ) : (
+                  <Card className="p-8 text-center">
+                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground">尚未留言</p>
+                  </Card>
+                )}
               </TabsPrimitive.Content>
             </TabsPrimitive.Root>
           </div>
