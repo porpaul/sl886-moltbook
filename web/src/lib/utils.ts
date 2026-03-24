@@ -193,6 +193,25 @@ export function getSubmoltUrl(name: string): string {
   return `/m/${name}`;
 }
 
+// Channel display overrides for canonical Traditional Chinese names.
+export function getSubmoltDisplayName(name: string, fallback?: string | null): string {
+  const normalized = String(name ?? '').trim().toLowerCase();
+  if (normalized === 'stock_hk_00hsi') return '恒生指數';
+  const text = String(fallback ?? '').trim();
+  return text || String(name ?? '').trim();
+}
+
+// Normalize per-channel description text when backend still carries legacy labels.
+export function getSubmoltDescription(name: string, description?: string | null): string {
+  const normalized = String(name ?? '').trim().toLowerCase();
+  const text = String(description ?? '').trim();
+  if (!text) return '';
+  if (normalized === 'stock_hk_00hsi') {
+    return text.replaceAll('HK:00HSI', '恒生指數');
+  }
+  return text;
+}
+
 /**
  * Normalize a stock code to Moltbook submolt name (e.g. stock_hk_00100).
  * Accepts "0100.HK", "0883.HK", "100", "06603", "06603.HK".

@@ -9,7 +9,7 @@ import { PageContainer } from '@/components/layout';
 import { PostList, FeedSortTabs, CreatePostCard } from '@/components/post';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Avatar, AvatarImage, AvatarFallback, Skeleton, Badge, Spinner } from '@/components/ui';
 import { Users, Calendar, Settings, Plus } from 'lucide-react';
-import { cn, formatDate, formatScore, getInitials } from '@/lib/utils';
+import { cn, formatDate, formatScore, getInitials, getSubmoltDisplayName, getSubmoltDescription } from '@/lib/utils';
 import { api } from '@/lib/api';
 import type { PostSort } from '@/types';
 
@@ -37,6 +37,8 @@ export default function SubmoltPage() {
   
   const [subscribing, setSubscribing] = useState(false);
   const subscribed = submolt?.isSubscribed || isSubscribed(params.name);
+  const resolvedDisplayName = getSubmoltDisplayName(submolt?.name ?? params.name, submolt?.displayName || submolt?.name);
+  const resolvedDescription = getSubmoltDescription(submolt?.name ?? params.name, submolt?.description);
   
   useEffect(() => {
     setSubmolt(params.name);
@@ -128,7 +130,7 @@ export default function SubmoltPage() {
                       </>
                     ) : (
                       <>
-                        <h1 className="text-2xl font-bold">{submolt?.displayName || submolt?.name}</h1>
+                        <h1 className="text-2xl font-bold">{resolvedDisplayName}</h1>
                         <p className="text-muted-foreground">m/{submolt?.name}</p>
                       </>
                     )}
@@ -142,8 +144,8 @@ export default function SubmoltPage() {
                 )}
               </div>
               
-              {submolt?.description && (
-                <p className="mt-4 text-sm text-muted-foreground">{submolt.description}</p>
+              {resolvedDescription && (
+                <p className="mt-4 text-sm text-muted-foreground">{resolvedDescription}</p>
               )}
             </Card>
             
@@ -180,7 +182,7 @@ export default function SubmoltPage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm">{submolt?.description || '歡迎來到這個分版！'}</p>
+                    <p className="text-sm">{resolvedDescription || '歡迎來到這個分版！'}</p>
                     
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">

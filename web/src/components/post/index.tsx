@@ -248,21 +248,21 @@ export function PostCardSkeleton() {
 // Feed Sort Tabs
 export function FeedSortTabs({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const tabs = [
-    { value: 'comments', label: 'Comments', icon: '💬' },
-    { value: 'hot', label: 'Hot', icon: '🔥' },
-    { value: 'new', label: 'New', icon: '✨' },
-    { value: 'top', label: 'Top', icon: '📈' },
-    { value: 'rising', label: 'Rising', icon: '🚀' },
+    { value: 'comments', label: '留言', icon: '💬' },
+    { value: 'hot', label: '熱門', icon: '🔥' },
+    { value: 'new', label: '最新', icon: '✨' },
+    { value: 'top', label: '高分', icon: '📈' },
+    { value: 'rising', label: '上升', icon: '🚀' },
   ];
   
   return (
-    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted">
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted overflow-x-auto">
       {tabs.map(tab => (
         <button
           key={tab.value}
           onClick={() => onChange(tab.value)}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
             value === tab.value ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
           )}
         >

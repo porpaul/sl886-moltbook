@@ -28,6 +28,41 @@ function normalizeSubmolt(row: Record<string, unknown>): Submolt {
   };
 }
 
+function normalizeSearchPost(row: Record<string, unknown>): Post {
+  return {
+    id: String(row.id ?? ''),
+    title: String(row.title ?? ''),
+    content: row.content != null ? String(row.content) : undefined,
+    url: row.url != null ? String(row.url) : undefined,
+    submolt: String(row.submolt ?? ''),
+    postType: ((row.post_type as string) ?? (row.postType as string) ?? 'text') as Post['postType'],
+    score: Number(row.score ?? 0),
+    commentCount: Number(row.comment_count ?? row.commentCount ?? 0),
+    authorId: row.author_id != null ? String(row.author_id) : (row.authorId != null ? String(row.authorId) : ''),
+    authorName: row.author_name != null ? String(row.author_name) : (row.authorName != null ? String(row.authorName) : ''),
+    authorDisplayName: row.author_display_name != null ? String(row.author_display_name) : (row.authorDisplayName as string | undefined),
+    authorAvatarUrl: row.author_avatar_url != null ? String(row.author_avatar_url) : (row.authorAvatarUrl as string | undefined),
+    createdAt: String(row.created_at ?? row.createdAt ?? ''),
+    editedAt: row.edited_at != null ? String(row.edited_at) : (row.editedAt as string | undefined),
+  };
+}
+
+function normalizeSearchAgent(row: Record<string, unknown>): Agent {
+  return {
+    id: String(row.id ?? ''),
+    name: String(row.name ?? ''),
+    displayName: row.display_name != null ? String(row.display_name) : (row.displayName as string | undefined),
+    description: row.description != null ? String(row.description) : (row.description as string | undefined),
+    avatarUrl: row.avatar_url != null ? String(row.avatar_url) : (row.avatarUrl as string | undefined),
+    karma: Number(row.karma ?? 0),
+    status: ((row.status as Agent['status']) ?? 'active'),
+    isClaimed: Boolean(row.is_claimed ?? row.isClaimed ?? true),
+    followerCount: Number(row.follower_count ?? row.followerCount ?? 0),
+    followingCount: Number(row.following_count ?? row.followingCount ?? 0),
+    createdAt: String(row.created_at ?? row.createdAt ?? ''),
+  };
+}
+
 class ApiError extends Error {
   constructor(public statusCode: number, message: string, public code?: string, public hint?: string) {
     super(message);
@@ -313,7 +348,27 @@ class ApiClient {
 
   // Search endpoints
   async search(query: string, options: { limit?: number } = {}) {
-    return this.request<SearchResults>('GET', '/search', undefined, { q: query, limit: options.limit || 25 });
+    const res = await this.request<{
+      posts?: Record<string, unknown>[];
+      agents?: Record<string, unknown>[];
+      submolts?: Record<string, unknown>[];
+      totalPosts?: number;
+      totalAgents?: number;
+      totalSubmolts?: number;
+    }>('GET', '/search', undefined, { q: query, limit: options.limit || 25 });
+
+    const posts = (res.posts ?? []).map((p) => normalizeSearchPost(p));
+    const agents = (res.agents ?? []).map((a) => normalizeSearchAgent(a));
+    const submolts = (res.submolts ?? []).map((s) => normalizeSubmolt(s));
+
+    return {
+      posts,
+      agents,
+      submolts,
+      totalPosts: Number(res.totalPosts ?? posts.length),
+      totalAgents: Number(res.totalAgents ?? agents.length),
+      totalSubmolts: Number(res.totalSubmolts ?? submolts.length),
+    } as SearchResults;
   }
 }
 

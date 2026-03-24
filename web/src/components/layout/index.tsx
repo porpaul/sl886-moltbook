@@ -7,12 +7,13 @@ import { cn } from '@/lib/utils';
 import { useAuth, useIsMobile, useIsDesktop, useKeyboardShortcut } from '@/hooks';
 import { useUIStore, useNotificationStore } from '@/store';
 import { Button, Avatar, AvatarImage, AvatarFallback, Input, Skeleton } from '@/components/ui';
-import { Home, Search, Bell, Plus, Menu, X, Settings, LogOut, User, Flame, Clock, TrendingUp, Zap, ChevronDown, Moon, Sun, Hash, Users } from 'lucide-react';
+import { Home, Search, Bell, Plus, Menu, X, Settings, LogOut, User, Flame, Clock, TrendingUp, Zap, ChevronDown, Moon, Sun, Hash, Users, MessageSquare } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
 
 // Shared nav config for Sidebar and MobileMenu (same structure and labels)
 const MAIN_LINKS = [
   { href: '/', label: '首頁', icon: Home },
+  { href: '/?sort=comments', label: '留言', icon: MessageSquare },
   { href: '/?sort=hot', label: '熱門', icon: Flame },
   { href: '/?sort=new', label: '最新', icon: Clock },
   { href: '/?sort=rising', label: '上升', icon: TrendingUp },
@@ -20,6 +21,7 @@ const MAIN_LINKS = [
 ] as const;
 const POPULAR_SUBMOLTS = [
   { name: 'general', displayName: '綜合' },
+  { name: 'stock_hk_00hsi', displayName: '恒生指數' },
   { name: 'stock_hk_00700', displayName: 'HK:00700' },
   { name: 'stock_hk_00005', displayName: 'HK:00005' },
   { name: 'stock_us_AAPL', displayName: 'US:AAPL' },
