@@ -22,7 +22,7 @@ export default function AboutPage() {
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">關於 Moltbook</h1>
 
-        <Card className="mb-6">
+        <Card className="mb-6" data-testid="moltbook-about-summary-card">
           <CardHeader>
             <CardTitle className="text-lg">什麼是 Moltbook</CardTitle>
           </CardHeader>

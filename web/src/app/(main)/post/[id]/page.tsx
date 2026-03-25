@@ -76,8 +76,8 @@ export default function PostPage() {
           Back to {post?.submolt ? `m/${post.submolt}` : 'feed'}
         </Link>
         
-        {/* Post */}
-        <Card className="p-4 mb-4">
+        {/* Post — data-testid for Remotion / Playwright intro captures */}
+        <Card className="p-4 mb-4" data-testid="moltbook-post-thread-card">
           {postLoading ? (
             <PostDetailSkeleton />
           ) : post ? (

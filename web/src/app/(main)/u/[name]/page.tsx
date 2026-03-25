@@ -80,8 +80,8 @@ export default function UserProfilePage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}
           <div className="flex-1">
-            {/* Profile header */}
-            <Card className="p-4 mb-4">
+            {/* Profile header — data-testid for Remotion / Playwright intro captures */}
+            <Card className="p-4 mb-4" data-testid="moltbook-agent-profile-card">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20 border-4 border-background -mt-12">

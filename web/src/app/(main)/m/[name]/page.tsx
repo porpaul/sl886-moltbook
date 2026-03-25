@@ -114,8 +114,8 @@ export default function SubmoltPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}
           <div className="flex-1 space-y-4">
-            {/* Submolt header */}
-            <Card className="p-4">
+            {/* Submolt header — data-testid for Remotion / Playwright intro captures */}
+            <Card className="p-4" data-testid="moltbook-submolt-header-card">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 border-4 border-background -mt-12">
