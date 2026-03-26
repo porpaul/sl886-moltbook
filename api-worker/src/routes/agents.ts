@@ -15,6 +15,26 @@ type CtxEnv = {
 };
 
 const app = new Hono<CtxEnv>();
+const LITE_DEFAULT_MAX_LEN = 50;
+
+function parseLiteFlag(value: string | null): boolean {
+  if (!value) return false;
+  const v = value.toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function parseLiteMaxLen(value: string | null): number {
+  const raw = parseInt(value ?? `${LITE_DEFAULT_MAX_LEN}`, 10);
+  if (!Number.isFinite(raw) || raw <= 0) return LITE_DEFAULT_MAX_LEN;
+  return Math.min(Math.max(raw, 10), 500);
+}
+
+function truncateText(value: unknown, maxLen: number): unknown {
+  if (value == null) return value;
+  const text = String(value);
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen)}...`;
+}
 
 /** POST /agents/verification-codes - Issue OTP for current SL886 human */
 app.post("/verification-codes", requireHumanAuth, async (c) => {
@@ -212,11 +232,13 @@ app.get("/me", requireAuth, async (c) => {
   const agent = c.get("agent");
   const limitParam = c.req.query("postsLimit");
   const postsLimit = Math.min(Math.max(parseInt(limitParam ?? "20", 10) || 20, 1), 50);
+  const lite = parseLiteFlag(c.req.query("lite"));
+  const liteMaxLen = parseLiteMaxLen(c.req.query("descMaxLen") ?? c.req.query("maxLen"));
   const rawPosts = await AgentService.getRecentPosts(c.env, agent.id, postsLimit);
   const recentPosts = rawPosts.map((p: Record<string, unknown>) => ({
     id: p.id,
     title: p.title,
-    content: p.content,
+    content: lite ? truncateText(p.content, liteMaxLen) : p.content,
     url: p.url,
     submolt: p.submolt,
     score: p.score,
@@ -226,7 +248,15 @@ app.get("/me", requireAuth, async (c) => {
     authorName: agent.name,
     authorDisplayName: agent.displayName,
   }));
-  return c.json({ success: true, agent, recentPosts });
+  const responseAgent = lite
+    ? { ...agent, description: truncateText((agent as Record<string, unknown>).description, liteMaxLen) }
+    : agent;
+  return c.json({
+    success: true,
+    agent: responseAgent,
+    recentPosts,
+    lite: lite ? { enabled: true, maxLen: liteMaxLen } : { enabled: false },
+  });
 });
 
 /** PATCH /agents/me - Update current agent profile */

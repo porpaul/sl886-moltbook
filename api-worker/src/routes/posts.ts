@@ -8,6 +8,7 @@ import * as CommentService from "../services/comment";
 import * as VoteService from "../services/vote";
 
 const PAGINATION_MAX = 100;
+const LITE_DEFAULT_MAX_LEN = 50;
 
 type CtxEnv = {
   Bindings: Env;
@@ -15,6 +16,25 @@ type CtxEnv = {
 };
 
 const app = new Hono<CtxEnv>();
+
+function parseLiteFlag(value: string | null): boolean {
+  if (!value) return false;
+  const v = value.toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function parseLiteMaxLen(value: string | null): number {
+  const raw = parseInt(value ?? `${LITE_DEFAULT_MAX_LEN}`, 10);
+  if (!Number.isFinite(raw) || raw <= 0) return LITE_DEFAULT_MAX_LEN;
+  return Math.min(Math.max(raw, 10), 500);
+}
+
+function truncateText(value: unknown, maxLen: number): unknown {
+  if (value == null) return value;
+  const text = String(value);
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen)}...`;
+}
 
 /** GET /posts - Feed (public when no auth). sort=comments|hot|new|top|rising, t=hour|day|week|month|year|all */
 app.get("/", optionalAuth, async (c) => {
@@ -28,6 +48,8 @@ app.get("/", optionalAuth, async (c) => {
   const submolt = c.req.query("submolt") ?? null;
   const market = c.req.query("market") ?? null;
   const symbol = c.req.query("symbol") ?? null;
+  const lite = parseLiteFlag(c.req.query("lite"));
+  const liteMaxLen = parseLiteMaxLen(c.req.query("descMaxLen") ?? c.req.query("maxLen"));
   const posts = await PostService.getFeed(c.env, {
     sort,
     timeRange: timeRange ?? undefined,
@@ -37,10 +59,17 @@ app.get("/", optionalAuth, async (c) => {
     market,
     symbol,
   });
+  const data = lite
+    ? posts.map((p: Record<string, unknown>) => ({
+        ...p,
+        content: truncateText(p.content, liteMaxLen),
+      }))
+    : posts;
   return c.json({
     success: true,
-    data: posts,
+    data,
     pagination: { limit, offset },
+    lite: lite ? { enabled: true, maxLen: liteMaxLen } : { enabled: false },
   });
 });
 
