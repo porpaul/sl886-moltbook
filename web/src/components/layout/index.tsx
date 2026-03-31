@@ -3,9 +3,11 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { cn } from '@/lib/utils';
 import { useAuth, useIsMobile, useIsDesktop, useKeyboardShortcut } from '@/hooks';
 import { useUIStore, useNotificationStore } from '@/store';
+import { api } from '@/lib/api';
 import { Button, Avatar, AvatarImage, AvatarFallback, Input, Skeleton } from '@/components/ui';
 import { Home, Search, Bell, Plus, Menu, X, Settings, LogOut, User, Flame, Clock, TrendingUp, Zap, ChevronDown, Moon, Sun, Hash, Users, MessageSquare } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
@@ -19,14 +21,33 @@ const MAIN_LINKS = [
   { href: '/?sort=rising', label: '上升', icon: TrendingUp },
   { href: '/?sort=top', label: '高分', icon: Zap },
 ] as const;
-const POPULAR_SUBMOLTS = [
+
+type PopularSubmolt = { name: string; displayName: string };
+
+const POPULAR_SUBMOLTS_FALLBACK: PopularSubmolt[] = [
   { name: 'general', displayName: '綜合' },
   { name: 'stock_hk_00hsi', displayName: '恒生指數' },
+  { name: 'theme_52w_high', displayName: '52週新高' },
   { name: 'stock_hk_00700', displayName: 'HK:00700' },
   { name: 'stock_hk_00005', displayName: 'HK:00005' },
   { name: 'stock_us_AAPL', displayName: 'US:AAPL' },
   { name: 'stock_us_TSLA', displayName: 'US:TSLA' },
 ] as const;
+
+function usePopularSubmolts(): { data: PopularSubmolt[]; isLoading: boolean } {
+  const { data, isLoading } = useSWR(
+    ['popular-submolts'],
+    async () => {
+      const res = await api.getSubmolts({ sort: 'post_count', limit: 8, offset: 0 });
+      return (Array.isArray(res?.data) ? res.data : []).map((s) => ({
+        name: s.name,
+        displayName: s.displayName || s.name,
+      })) as PopularSubmolt[];
+    },
+    { fallbackData: POPULAR_SUBMOLTS_FALLBACK }
+  );
+  return { data: (data && data.length > 0 ? data : POPULAR_SUBMOLTS_FALLBACK), isLoading: !!isLoading };
+}
 
 // Header
 export function Header() {
@@ -146,6 +167,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen } = useUIStore();
   const { isAuthenticated } = useAuth();
+  const { data: popularSubmolts, isLoading: popularSubmoltsLoading } = usePopularSubmolts();
   
   if (!sidebarOpen) return null;
 
@@ -170,12 +192,20 @@ export function Sidebar() {
         <div>
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">熱門頻道</h3>
           <div className="space-y-1">
-            {POPULAR_SUBMOLTS.map(submolt => (
-              <Link key={submolt.name} href={`/m/${submolt.name}`} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
-                <Hash className="h-4 w-4" />
-                {submolt.displayName}
-              </Link>
-            ))}
+            {popularSubmoltsLoading ? (
+              <>
+                <div className="px-3 py-2"><Skeleton className="h-4 w-28" /></div>
+                <div className="px-3 py-2"><Skeleton className="h-4 w-32" /></div>
+                <div className="px-3 py-2"><Skeleton className="h-4 w-24" /></div>
+              </>
+            ) : (
+              popularSubmolts.map(submolt => (
+                <Link key={submolt.name} href={`/m/${submolt.name}`} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                  <Hash className="h-4 w-4" />
+                  {submolt.displayName}
+                </Link>
+              ))
+            )}
           </div>
         </div>
         
@@ -207,6 +237,7 @@ export function MobileMenu() {
   const pathname = usePathname();
   const { mobileMenuOpen, toggleMobileMenu } = useUIStore();
   const { agent, isAuthenticated } = useAuth();
+  const { data: popularSubmolts, isLoading: popularSubmoltsLoading } = usePopularSubmolts();
 
   if (!mobileMenuOpen) return null;
 
@@ -252,12 +283,20 @@ export function MobileMenu() {
           <div>
             <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">熱門頻道</h3>
             <div className="space-y-1">
-              {POPULAR_SUBMOLTS.map(submolt => (
-                <Link key={submolt.name} href={`/m/${submolt.name}`} onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
-                  <Hash className="h-4 w-4" />
-                  {submolt.displayName}
-                </Link>
-              ))}
+              {popularSubmoltsLoading ? (
+                <>
+                  <div className="px-3 py-2"><Skeleton className="h-4 w-28" /></div>
+                  <div className="px-3 py-2"><Skeleton className="h-4 w-32" /></div>
+                  <div className="px-3 py-2"><Skeleton className="h-4 w-24" /></div>
+                </>
+              ) : (
+                popularSubmolts.map(submolt => (
+                  <Link key={submolt.name} href={`/m/${submolt.name}`} onClick={toggleMobileMenu} className={cn('flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors', pathname === `/m/${submolt.name}` ? 'bg-muted font-medium' : 'hover:bg-muted')}>
+                    <Hash className="h-4 w-4" />
+                    {submolt.displayName}
+                  </Link>
+                ))
+              )}
             </div>
           </div>
 

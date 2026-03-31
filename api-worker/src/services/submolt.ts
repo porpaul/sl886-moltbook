@@ -188,6 +188,9 @@ export async function list(
     case "new":
       orderBy = "created_at DESC";
       break;
+    case "post_count":
+      orderBy = "post_count DESC, created_at DESC";
+      break;
     case "alphabetical":
       orderBy = "name ASC";
       break;
@@ -198,7 +201,7 @@ export async function list(
   }
   return queryAll(
     env,
-    `SELECT id, name, display_name, description, subscriber_count, created_at
+    `SELECT id, name, display_name, description, subscriber_count, post_count, created_at
      FROM submolts ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
     limit,
     offset

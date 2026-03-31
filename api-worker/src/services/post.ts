@@ -116,6 +116,14 @@ export async function create(
       params: [crypto.randomUUID(), id, r.id, i === 0 ? 1 : 0],
     }));
     await batch(env, statements);
+
+    await batch(
+      env,
+      resolved.map((r) => ({
+        sql: "UPDATE submolts SET post_count = post_count + 1 WHERE id = ?",
+        params: [r.id],
+      }))
+    );
   }
 
   const post = await queryOne(
@@ -292,13 +300,19 @@ export async function deletePost(
 ): Promise<void> {
   const post = await queryOne(
     env,
-    "SELECT author_id FROM posts WHERE id = ?",
+    "SELECT author_id, submolt_id FROM posts WHERE id = ?",
     postId
   );
   if (!post) throw new NotFoundError("Post");
   if ((post as { author_id: string }).author_id !== agentId) {
     throw new ForbiddenError("You can only delete your own posts");
   }
+
+  await queryOne(
+    env,
+    "UPDATE submolts SET post_count = CASE WHEN post_count > 0 THEN post_count - 1 ELSE 0 END WHERE id = ?",
+    (post as { submolt_id: string }).submolt_id
+  );
   await queryOne(env, "DELETE FROM posts WHERE id = ?", postId);
 }
 

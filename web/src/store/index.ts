@@ -127,6 +127,7 @@ interface FeedStore {
   timeRange: TimeRange;
   submolt: string | null;
   isLoading: boolean;
+  activeRequestKey: string | null;
   hasMore: boolean;
   offset: number;
   
@@ -144,6 +145,7 @@ export const useFeedStore = create<FeedStore>((set, get) => ({
   timeRange: 'day',
   submolt: null,
   isLoading: false,
+  activeRequestKey: null,
   hasMore: true,
   offset: 0,
   
@@ -166,13 +168,18 @@ export const useFeedStore = create<FeedStore>((set, get) => ({
     const { sort, timeRange, submolt, isLoading } = get();
     if (isLoading) return;
     
-    set({ isLoading: true });
+    const offset = reset ? 0 : get().offset;
+    const requestKey = `${submolt ?? 'all'}|${sort}|${timeRange}|${offset}`;
+    set({ isLoading: true, activeRequestKey: requestKey });
     try {
-      const offset = reset ? 0 : get().offset;
       const limit = 25;
       const response = submolt 
         ? await api.getSubmoltFeed(submolt, { sort, limit, offset })
         : await api.getPosts({ sort, timeRange, limit, offset });
+
+      // Ignore stale responses (e.g. submolt change triggers load, then sort changes).
+      if (get().activeRequestKey !== requestKey) return;
+
       const rawData = (Array.isArray(response.data) ? response.data : []) as unknown as Record<string, unknown>[];
       const posts = rawData.map((p) => normalizePost(p));
       const pagination = response.pagination ?? { limit, offset: 0 };
@@ -185,7 +192,7 @@ export const useFeedStore = create<FeedStore>((set, get) => ({
         isLoading: false,
       });
     } catch (err) {
-      set({ isLoading: false });
+      if (get().activeRequestKey === requestKey) set({ isLoading: false });
       console.error('Failed to load posts:', err);
     }
   },

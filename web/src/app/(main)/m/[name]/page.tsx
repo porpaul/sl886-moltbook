@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, notFound } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useSubmolt, useAuth, useInfiniteScroll } from '@/hooks';
 import { useFeedStore, useSubscriptionStore } from '@/store';
@@ -26,8 +26,10 @@ function getStockPrettyName(market: string, symbol: string): string | null {
 
 export default function SubmoltPage() {
   const params = useParams<{ name: string }>();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const sortParam = (searchParams.get('sort') as PostSort) || 'comments';
+  const rawSort = searchParams.get('sort');
+  const sortParam = (rawSort as PostSort) || 'new';
   
   const { data: submolt, isLoading: submoltLoading, error } = useSubmolt(params.name);
   const { isAuthenticated } = useAuth();
@@ -43,7 +45,12 @@ export default function SubmoltPage() {
   useEffect(() => {
     setSubmolt(params.name);
     if (sortParam !== sort) setSort(sortParam);
-  }, [params.name, sortParam, sort, setSubmolt, setSort]);
+
+    // Keep URL and store in sync (and make the default explicit).
+    if (!rawSort) {
+      router.replace(`/m/${params.name}?sort=${sortParam}`, { scroll: false });
+    }
+  }, [params.name, rawSort, router, sortParam, sort, setSubmolt, setSort]);
   
   const handleSubscribe = async () => {
     if (!isAuthenticated || subscribing) return;
@@ -154,7 +161,13 @@ export default function SubmoltPage() {
             
             {/* Sort tabs */}
             <Card className="p-3">
-              <FeedSortTabs value={sort} onChange={(v) => setSort(v as PostSort)} />
+              <FeedSortTabs
+                value={sort}
+                onChange={(v) => {
+                  setSort(v as PostSort);
+                  router.replace(`/m/${params.name}?sort=${v}`, { scroll: false });
+                }}
+              />
             </Card>
             
             {/* Posts */}
