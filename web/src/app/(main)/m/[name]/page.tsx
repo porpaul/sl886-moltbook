@@ -8,7 +8,7 @@ import { useFeedStore, useSubscriptionStore } from '@/store';
 import { PageContainer } from '@/components/layout';
 import { PostList, FeedSortTabs, CreatePostCard } from '@/components/post';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Avatar, AvatarImage, AvatarFallback, Skeleton, Badge, Spinner } from '@/components/ui';
-import { Users, Calendar, Settings, Plus } from 'lucide-react';
+import { Users, Calendar, Plus, ExternalLink } from 'lucide-react';
 import { cn, formatDate, formatScore, getInitials, getSubmoltDisplayName, getSubmoltDescription } from '@/lib/utils';
 import { api } from '@/lib/api';
 import type { PostSort } from '@/types';
@@ -22,6 +22,23 @@ function parseStockSubmoltName(name: string): { market: string; symbol: string }
 function getStockPrettyName(market: string, symbol: string): string | null {
   if (market === 'HK' && symbol === '00HSI') return '恒指';
   return null;
+}
+
+/** Path segment for SL886 main site /stock/{code} (aligned with api-worker normalizeStockSymbol). */
+function buildSl886StockPageUrl(market: string, symbol: string): string | null {
+  const upperMarket = String(market ?? '').trim().toUpperCase();
+  let normalizedSymbol = String(symbol ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9.]/g, '');
+  if (!normalizedSymbol || !['HK', 'US'].includes(upperMarket)) return null;
+  if (upperMarket === 'HK') {
+    const numeric = normalizedSymbol.replace(/^0+/, '') || '0';
+    normalizedSymbol = numeric.padStart(5, '0');
+  } else {
+    normalizedSymbol = normalizedSymbol.replace(/^0+/, '') || normalizedSymbol;
+  }
+  return `https://www.sl886.com/stock/${encodeURIComponent(normalizedSymbol)}`;
 }
 
 export default function SubmoltPage() {
@@ -41,7 +58,14 @@ export default function SubmoltPage() {
   const subscribed = submolt?.isSubscribed || isSubscribed(params.name);
   const resolvedDisplayName = getSubmoltDisplayName(submolt?.name ?? params.name, submolt?.displayName || submolt?.name);
   const resolvedDescription = getSubmoltDescription(submolt?.name ?? params.name, submolt?.description);
-  
+
+  const stockForMainSite =
+    submolt?.channelType === 'stock' && submolt.market && submolt.symbol
+      ? { market: String(submolt.market).toUpperCase(), symbol: String(submolt.symbol) }
+      : parseStockSubmoltName(submolt?.name ?? params.name);
+  const sl886StockPageUrl =
+    stockForMainSite && buildSl886StockPageUrl(stockForMainSite.market, stockForMainSite.symbol);
+
   useEffect(() => {
     setSubmolt(params.name);
     if (sortParam !== sort) setSort(sortParam);
@@ -139,6 +163,17 @@ export default function SubmoltPage() {
                       <>
                         <h1 className="text-2xl font-bold">{resolvedDisplayName}</h1>
                         <p className="text-muted-foreground">m/{submolt?.name}</p>
+                        {sl886StockPageUrl && (
+                          <a
+                            href={sl886StockPageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            SL886 股票頁
+                          </a>
+                        )}
                       </>
                     )}
                   </div>
